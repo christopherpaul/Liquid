@@ -8,6 +8,15 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        <local:GridVizView DataContext="{Binding GridViz}" />
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <WrapPanel>
+            <Button Command="{Binding GridViz.ZeroDivCommand}">Enforce div(u)=0</Button>
+        </WrapPanel>
+        
+        <local:GridVizView Grid.Row="1" DataContext="{Binding GridViz}" />
     </Grid>
 </Window>

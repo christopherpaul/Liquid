@@ -14,8 +14,13 @@ namespace LiquidSim
     /// </summary>
     private readonly float[,] density;
 
-    private readonly float[,] xVelocity;
-    private readonly float[,] yVelocity;
+    private readonly float[,] u;
+    private readonly float[,] v;
+
+    private readonly float[,] divU;
+    private readonly float[,] phi;
+    private readonly float[,] gradPhiX;
+    private readonly float[,] gradPhiY;
 
     public Grid(int xSize, int ySize)
     {
@@ -23,8 +28,12 @@ namespace LiquidSim
       YSize = ySize;
 
       density = new float[xSize, ySize];
-      xVelocity = new float[xSize, ySize];
-      yVelocity = new float[xSize, ySize];
+      u = new float[xSize, ySize];
+      v = new float[xSize, ySize];
+      divU = new float[xSize - 1, ySize - 1];
+      phi = new float[xSize + 1, ySize + 1];
+      gradPhiX = new float[xSize, ySize];
+      gradPhiY = new float[xSize, ySize];
     }
 
     public int XSize { get; }
@@ -32,13 +41,22 @@ namespace LiquidSim
 
     public CellState this[int x, int y]
     {
-      get => new CellState(density[x, y], xVelocity[x, y], yVelocity[x, y]);
+      get => new CellState(density[x, y], u[x, y], v[x, y]);
       set
       {
         density[x, y] = value.Density;
-        xVelocity[x, y] = value.XVelocity;
-        yVelocity[x, y] = value.YVelocity;
+        u[x, y] = value.XVelocity;
+        v[x, y] = value.YVelocity;
       }
+    }
+
+    public void EnforceNonDivergenceOfVelocity()
+    {
+      FieldMaths.Divergence(u, v, divU);
+      FieldMaths.SolvePoisson(divU, phi, 20);
+      FieldMaths.Gradient(phi, gradPhiX, gradPhiY);
+      FieldMaths.MultiplyAdd(gradPhiX, -1, u);
+      FieldMaths.MultiplyAdd(gradPhiY, -1, v);
     }
   }
 }

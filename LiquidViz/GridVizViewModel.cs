@@ -4,8 +4,10 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using LiquidSim;
 using Microsoft.Toolkit.Mvvm.ComponentModel;
+using Microsoft.Toolkit.Mvvm.Input;
 
 namespace LiquidViz
 {
@@ -19,6 +21,12 @@ namespace LiquidViz
       grid = CreateGrid();
       Cells = new ObservableCollection<CellVizViewModel>(Enumerable.Repeat<CellVizViewModel>(default, grid.XSize * grid.YSize));
       UpdateCells();
+
+      ZeroDivCommand = new RelayCommand(() =>
+      {
+        grid.EnforceNonDivergenceOfVelocity();
+        UpdateCells();
+      });
     }
 
     public ObservableCollection<CellVizViewModel> Cells { get; }
@@ -35,6 +43,8 @@ namespace LiquidViz
       }
     }
 
+    public ICommand ZeroDivCommand { get; }
+
     private void UpdateCells()
     {
       int i = 0;
@@ -50,6 +60,7 @@ namespace LiquidViz
 
     private static Grid CreateGrid()
     {
+      var rnd = new Random();
       var grid = new Grid(20, 20);
       for (int x = 0; x < grid.XSize; x++)
       {
@@ -59,7 +70,7 @@ namespace LiquidViz
             grid[x, y] = default;
           else
           {
-            grid[x, y] = new CellState(1, y - 12, 10 - x); // no this isn't consistent
+            grid[x, y] = new CellState(1, (float)(rnd.NextDouble() * 10 - 5), (float)(rnd.NextDouble() * 10 - 5)); // no this isn't consistent
           }
         }
       }

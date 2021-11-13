@@ -6,5 +6,5 @@ using System.Threading.Tasks;
 
 namespace LiquidSim
 {
-  public readonly record struct CellState(float Density, float XVelocity, float YVelocity);
+  public readonly record struct CellState(float Volume, float XVelocity, float YVelocity);
 }

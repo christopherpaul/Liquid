@@ -14,7 +14,9 @@
         </Grid.RowDefinitions>
 
         <WrapPanel>
+            <Button Command="{Binding GridViz.ResetCommand}">Reset</Button>
             <Button Command="{Binding GridViz.ZeroDivCommand}">Enforce div(u)=0</Button>
+            <Button Command="{Binding GridViz.VolumeAdvectionCommand}">Volume advection</Button>
         </WrapPanel>
         
         <local:GridVizView Grid.Row="1" DataContext="{Binding GridViz}" />

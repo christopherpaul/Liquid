@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 
 namespace LiquidViz
 {
-  public record class CellVizViewModel(float X, float Y, float Density, float XVelocity, float YVelocity)
+  public record class CellVizViewModel(float X, float Y, float Volume, float XVelocity, float YVelocity)
   {
-    public CellVizViewModel(float X, float Y, CellState State) : this(X, Y, State.Density, State.XVelocity, State.YVelocity) { }
+    public CellVizViewModel(float X, float Y, CellState State) : this(X, Y, State.Volume, State.XVelocity, State.YVelocity) { }
   }
 }

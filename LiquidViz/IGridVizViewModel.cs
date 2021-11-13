@@ -7,10 +7,12 @@ using System.Windows.Input;
 
 namespace LiquidViz
 {
-  internal interface IGridVizViewModel
-  {
-    float Scale { get; set; }
+    internal interface IGridVizViewModel
+    {
+        float Scale { get; set; }
 
-    ICommand ZeroDivCommand { get; }
-  }
+        ICommand ResetCommand { get; }
+        ICommand ZeroDivCommand { get; }
+        ICommand VolumeAdvectionCommand { get; }
+    }
 }

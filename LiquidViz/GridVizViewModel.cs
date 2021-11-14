@@ -53,6 +53,7 @@ namespace LiquidViz
             {
                 tickTimer.Change(tickPeriod, tickPeriod);
                 isRunning = true;
+                OnStartStop();
             },
             () => !isRunning);
 
@@ -66,6 +67,7 @@ namespace LiquidViz
             {
                 tickTimer.Change(Timeout.Infinite, Timeout.Infinite);
                 isRunning = false;
+                OnStartStop();
             }
 
             void Tick()
@@ -75,6 +77,12 @@ namespace LiquidViz
                     grid.DoStep(0.1f);
                 }
                 syncContext.Post(_ => UpdateCells(), null);
+            }
+
+            void OnStartStop()
+            {
+                ((IRelayCommand)StartCommand).NotifyCanExecuteChanged();
+                ((IRelayCommand)StopCommand).NotifyCanExecuteChanged();
             }
         }
 

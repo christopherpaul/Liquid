@@ -70,7 +70,7 @@ namespace LiquidSim
         /// <param name="f"></param>
         /// <param name="φ"></param>
         /// <param name="iterations"></param>
-        public static void SolvePoisson(float[,] f, float[,] φ, int iterations)
+        public static void SolvePoisson(float[,] f, float[,] φ, int iterations, Action<float[,]> applyBoundaryConditions)
         {
             CheckConsistentDimensions(f, φ, 2);
 
@@ -79,6 +79,7 @@ namespace LiquidSim
             for (int i = 0; i < iterations; i++)
             {
                 PoissonStep(f, φ);
+                applyBoundaryConditions?.Invoke(φ);
             }
         }
 

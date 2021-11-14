@@ -70,11 +70,43 @@ namespace LiquidSim
 
         public void EnforceNonDivergenceOfVelocity()
         {
+            ApplyVelocityBoundaryCondition();
             FieldMaths.Divergence(u, v, divU);
-            FieldMaths.SolvePoisson(divU, phi, 20);
+            FieldMaths.SolvePoisson(divU, phi, 20, ApplyBoundaryConditions);
             FieldMaths.Gradient(phi, gradPhiX, gradPhiY);
             FieldMaths.MultiplyAdd(gradPhiX, -1, u);
             FieldMaths.MultiplyAdd(gradPhiY, -1, v);
+            ApplyVelocityBoundaryCondition();
+
+            void ApplyVelocityBoundaryCondition()
+            {
+                for (int x = 0; x < XSize; x++)
+                {
+                    v[x, 0] = 0;
+                    v[x, YSize - 1] = 0;
+                }
+
+                for (int y = 0; y < YSize; y++)
+                {
+                    u[0, y] = 0;
+                    u[XSize - 1, y] = 0;
+                }
+            }
+
+            void ApplyBoundaryConditions(float[,] phi)
+            {
+                for (int x = 1; x < XSize; x++)
+                {
+                    phi[x, 0] = phi[x, 1];
+                    phi[x, YSize] = phi[x, YSize - 1];
+                }
+
+                for (int y = 0; y < YSize + 1; y++)
+                {
+                    phi[0, y] = phi[1, y];
+                    phi[XSize, y] = phi[XSize - 1, y];
+                }
+            }
         }
 
         public void DoVolumeAdvection(float dt)
@@ -89,6 +121,8 @@ namespace LiquidSim
 
             FieldMaths.Diffuse(u, dt, Viscosity, tempU, 20);
             FieldMaths.Diffuse(v, dt, Viscosity, tempV, 20);
+
+            EnforceNonDivergenceOfVelocity();
 
             FieldMaths.SimpleAdvection(tempU, tempV, dt, tempU, u);
             FieldMaths.SimpleAdvection(tempU, tempV, dt, tempV, v);

@@ -13,10 +13,10 @@ namespace LiquidSim
         /// partially-occupied cells at free surfaces, so this ranges from 0 to 1.
         /// </summary>
         private float[,] volume;
-        private float[,] nextVolume;
+        private float[,] tempVolume;
 
-        private readonly float[,] u;
-        private readonly float[,] v;
+        private float[,] u, tempU;
+        private float[,] v, tempV;
 
         private readonly float[,] divU;
         private readonly float[,] phi;
@@ -29,14 +29,24 @@ namespace LiquidSim
             YSize = ySize;
 
             volume = new float[xSize, ySize];
-            nextVolume = new float[xSize, ySize];
+            tempVolume = new float[xSize, ySize];
             u = new float[xSize, ySize];
+            tempU = new float[xSize, ySize];
             v = new float[xSize, ySize];
+            tempV = new float[xSize, ySize];
             divU = new float[xSize - 1, ySize - 1];
             phi = new float[xSize + 1, ySize + 1];
             gradPhiX = new float[xSize, ySize];
             gradPhiY = new float[xSize, ySize];
+
+            Density = 1;
+            Viscosity = 1;
+            Gravity = 0.1f;
         }
+
+        public float Density { get; set; }
+        public float Viscosity { get; set; }
+        public float Gravity { get; set; }
 
         public int XSize { get; }
         public int YSize { get; }
@@ -52,6 +62,12 @@ namespace LiquidSim
             }
         }
 
+        public void DoStep(float dt)
+        {
+            DoVolumeAdvection(dt);
+            DoVelocityEvolution(dt);
+        }
+
         public void EnforceNonDivergenceOfVelocity()
         {
             FieldMaths.Divergence(u, v, divU);
@@ -61,10 +77,37 @@ namespace LiquidSim
             FieldMaths.MultiplyAdd(gradPhiY, -1, v);
         }
 
-        public void DoVolumeAdvection()
+        public void DoVolumeAdvection(float dt)
         {
-            FieldMaths.VolumeAdvection(u, v, 0.1f, volume, nextVolume);
-            (volume, nextVolume) = (nextVolume, volume);
+            FieldMaths.VolumeAdvection(u, v, dt, volume, tempVolume);
+            (volume, tempVolume) = (tempVolume, volume);
+        }
+
+        public void DoVelocityEvolution(float dt)
+        {
+            FieldMaths.Add(v, Gravity);
+
+            FieldMaths.Diffuse(u, dt, Viscosity, tempU, 20);
+            FieldMaths.Diffuse(v, dt, Viscosity, tempV, 20);
+
+            FieldMaths.SimpleAdvection(tempU, tempV, dt, tempU, u);
+            FieldMaths.SimpleAdvection(tempU, tempV, dt, tempV, v);
+
+            EnforceNonDivergenceOfVelocity();
+        }
+
+        public float GetTotalVolume()
+        {
+            float v = 0;
+            for (int x = 0; x < XSize; x++)
+            {
+                for (int y = 0; y < YSize; y++)
+                {
+                    v += volume[x, y];
+                }
+            }
+
+            return v;
         }
     }
 }

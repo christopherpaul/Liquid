@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using LiquidSim;
@@ -15,6 +16,7 @@ namespace LiquidViz
     {
         private readonly Grid grid;
         private float scale = 20;
+        private float totalVolume;
 
         public GridVizViewModel()
         {
@@ -23,23 +25,57 @@ namespace LiquidViz
             Cells = new ObservableCollection<CellVizViewModel>(Enumerable.Repeat<CellVizViewModel>(default, grid.XSize * grid.YSize));
             UpdateCells();
 
+            var syncContext = SynchronizationContext.Current;
+
+            object tickSync = new object();
+            var tickTimer = new Timer(_ => Tick());
+            bool isRunning = false;
+
+            var tickPeriod = TimeSpan.FromSeconds(0.1);
+
             ResetCommand = new RelayCommand(() =>
             {
-                ResetGrid();
+                Stop();
+                lock (tickSync)
+                {
+                    ResetGrid();
+                }
                 UpdateCells();
             });
 
-            ZeroDivCommand = new RelayCommand(() =>
+            StepCommand = new RelayCommand(() =>
             {
-                grid.EnforceNonDivergenceOfVelocity();
-                UpdateCells();
+                Stop();
+                Task.Run(Tick);
             });
 
-            VolumeAdvectionCommand = new RelayCommand(() =>
+            StartCommand = new RelayCommand(() =>
             {
-                grid.DoVolumeAdvection();
-                UpdateCells();
-            });
+                tickTimer.Change(tickPeriod, tickPeriod);
+                isRunning = true;
+            },
+            () => !isRunning);
+
+            StopCommand = new RelayCommand(() =>
+            {
+                Stop();
+            },
+            () => isRunning);
+
+            void Stop()
+            {
+                tickTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                isRunning = false;
+            }
+
+            void Tick()
+            {
+                lock (tickSync)
+                {
+                    grid.DoStep(0.1f);
+                }
+                syncContext.Post(_ => UpdateCells(), null);
+            }
         }
 
         public ObservableCollection<CellVizViewModel> Cells { get; }
@@ -57,8 +93,15 @@ namespace LiquidViz
         }
 
         public ICommand ResetCommand { get; }
-        public ICommand ZeroDivCommand { get; }
-        public ICommand VolumeAdvectionCommand { get; }
+        public ICommand StepCommand { get; }
+        public ICommand StartCommand { get; }
+        public ICommand StopCommand { get; }
+
+        public float TotalVolume
+        {
+            get => totalVolume;
+            private set => SetProperty(ref totalVolume, value);
+        }
 
         private void UpdateCells()
         {
@@ -71,6 +114,8 @@ namespace LiquidViz
                     Cells[i++] = new CellVizViewModel(x * Scale, y * Scale, cellState);
                 }
             }
+
+            TotalVolume = grid.GetTotalVolume();
         }
 
         private void ResetGrid()
@@ -88,6 +133,8 @@ namespace LiquidViz
                     }
                 }
             }
+
+            grid.EnforceNonDivergenceOfVelocity();
         }
     }
 }

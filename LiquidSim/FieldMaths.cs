@@ -37,18 +37,18 @@ namespace LiquidSim
         }
 
         /// <summary>
-        /// Calculate gradient of phi and store in (gradX, gradY).
+        /// Calculate gradient of φ and store in (gradX, gradY).
         /// </summary>
-        /// <param name="phi">scalar field</param>
+        /// <param name="φ">scalar field</param>
         /// <param name="gradX">output - x component of gradient</param>
         /// <param name="gradY">output - y component of gradient</param>
         /// <remarks>
         /// <para>Output is on a staggered grid, i.e. the positions of the output grid
         /// are offset by 0.5 grid units and have one less grid unit in both dimensions.</para>
         /// </remarks>
-        public static void Gradient(float[,] phi, float[,] gradX, float[,] gradY)
+        public static void Gradient(float[,] φ, float[,] gradX, float[,] gradY)
         {
-            CheckConsistentDimensions(phi, gradX, -1);
+            CheckConsistentDimensions(φ, gradX, -1);
             CheckConsistentDimensions(gradX, gradY);
 
             int xSize = gradX.GetLength(0);
@@ -58,42 +58,47 @@ namespace LiquidSim
             {
                 for (int y = 0; y < ySize; y++)
                 {
-                    gradX[x, y] = (phi[x + 1, y] + phi[x + 1, y + 1] - phi[x, y] - phi[x, y + 1]) / 2;
-                    gradY[x, y] = (phi[x, y + 1] + phi[x + 1, y + 1] - phi[x, y] - phi[x + 1, y]) / 2;
+                    gradX[x, y] = (φ[x + 1, y] + φ[x + 1, y + 1] - φ[x, y] - φ[x, y + 1]) / 2;
+                    gradY[x, y] = (φ[x, y + 1] + φ[x + 1, y + 1] - φ[x, y] - φ[x + 1, y]) / 2;
                 }
             }
         }
 
-        public static void SolvePoisson(float[,] f, float[,] phi, int iterations)
+        /// <summary>
+        /// Solves ∇²φ = f
+        /// </summary>
+        /// <param name="f"></param>
+        /// <param name="φ"></param>
+        /// <param name="iterations"></param>
+        public static void SolvePoisson(float[,] f, float[,] φ, int iterations)
         {
-            CheckConsistentDimensions(f, phi, 2);
+            CheckConsistentDimensions(f, φ, 2);
 
-            Clear(phi);
+            Clear(φ);
 
             for (int i = 0; i < iterations; i++)
             {
-                PoissonStep(f, phi);
-                //SetBoundary(phi);
+                PoissonStep(f, φ);
             }
         }
 
-        private static void PoissonStep(float[,] f, float[,] phi)
+        private static void PoissonStep(float[,] f, float[,] φ)
         {
-            int xSize = phi.GetLength(0);
-            int ySize = phi.GetLength(1);
+            int xSize = φ.GetLength(0);
+            int ySize = φ.GetLength(1);
 
             for (int x = 1; x < xSize - 1; x++)
             {
                 for (int y = 1; y < ySize - 1; y++)
                 {
-                    phi[x, y] = (-f[x - 1, y - 1] + phi[x, y - 1] + phi[x, y + 1] + phi[x - 1, y] + phi[x + 1, y]) / 4;
+                    φ[x, y] = (-f[x - 1, y - 1] + φ[x, y - 1] + φ[x, y + 1] + φ[x - 1, y] + φ[x + 1, y]) / 4;
                 }
             }
         }
 
-        public static void Laplacian(float[,] phi, float[,] laplacian)
+        public static void Laplacian(float[,] φ, float[,] laplacian)
         {
-            CheckConsistentDimensions(phi, laplacian, -2);
+            CheckConsistentDimensions(φ, laplacian, -2);
 
             int xSize = laplacian.GetLength(0);
             int ySize = laplacian.GetLength(1);
@@ -102,7 +107,7 @@ namespace LiquidSim
             {
                 for (int y = 0; y < ySize; y++)
                 {
-                    laplacian[x, y] = phi[x + 2, y + 1] + phi[x, y + 1] + phi[x + 1, y + 2] + phi[x + 1, y] - 4 * phi[x + 1, y + 1];
+                    laplacian[x, y] = φ[x + 2, y + 1] + φ[x, y + 1] + φ[x + 1, y + 2] + φ[x + 1, y] - 4 * φ[x + 1, y + 1];
                 }
             }
         }
@@ -117,6 +122,52 @@ namespace LiquidSim
                 for (int y = 0; y < ySize; y++)
                 {
                     q[x, y] = value;
+                }
+            }
+        }
+
+        public static void Add(float[,] q, float value)
+        {
+            int xSize = q.GetLength(0);
+            int ySize = q.GetLength(1);
+
+            for (int x = 0; x < xSize; x++)
+            {
+                for (int y = 0; y < ySize; y++)
+                {
+                    q[x, y] += value;
+                }
+            }
+        }
+
+        public static void Copy(float[,] q0, float[,] q1)
+        {
+            CheckConsistentDimensions(q0, q1);
+
+            int xSize = q1.GetLength(0);
+            int ySize = q1.GetLength(1);
+
+            for (int x = 0; x < xSize; x++)
+            {
+                for (int y = 0; y < ySize; y++)
+                {
+                    q1[x, y] = q0[x, y];
+                }
+            }
+        }
+
+        public static void Test(float[,] q, Func<float, bool> predicate, bool[,] result)
+        {
+            CheckConsistentDimensions(q, result);
+
+            int xSize = result.GetLength(0);
+            int ySize = result.GetLength(1);
+
+            for (int x = 0; x < xSize; x++)
+            {
+                for (int y = 0; y < ySize; y++)
+                {
+                    result[x, y] = predicate(q[x, y]);
                 }
             }
         }
@@ -160,6 +211,74 @@ namespace LiquidSim
                 {
                     q[x, y] += factor * p[x, y];
                 }
+            }
+        }
+
+        public static void Diffuse(float[,] φ0, float dt, float diff, float[,] φ1, int iterations)
+        {
+            float a = dt * diff;
+            float b = 1 / (1 + 4 * a);
+
+            int xSize = φ1.GetLength(0);
+            int ySize = φ1.GetLength(1);
+
+            Copy(φ0, φ1);
+
+            for (int i = 0; i < iterations; i++)
+            {
+                Step();
+            }
+
+            void Step()
+            {
+                for (int x = 1; x < xSize - 1; x++)
+                {
+                    for (int y = 1; y < ySize - 1; y++)
+                    {
+                        φ1[x, y] = b * (φ0[x, y] + a * (φ1[x, y - 1] + φ1[x, y + 1] + φ1[x - 1, y] + φ1[x + 1, y]));
+                    }
+                }
+            }
+        }
+
+        public static void SimpleAdvection(float[,] u, float[,] v, float dt, float[,] q0, float[,] q1)
+        {
+            CheckConsistentDimensions(u, v);
+            CheckConsistentDimensions(q0, q1);
+            CheckConsistentDimensions(u, q0);
+
+            int xSize = q1.GetLength(0);
+            int ySize = q1.GetLength(1);
+
+            for (int x = 0; x < xSize; x++)
+            {
+                for (int y = 0; y < ySize; y++)
+                {
+                    // Project backward in time by dt from this cell
+                    float x0 = x - u[x, y] * dt;
+                    float y0 = y - v[x, y] * dt;
+                    int x0Int = (int)Math.Floor(x0);
+                    int y0Int = (int)Math.Floor(y0);
+                    float x0Frac = x0 - x0Int;
+                    float y0Frac = y0 - y0Int;
+
+                    // Query the value in a grid-cell (offset) at this back-projected position.
+                    q1[x, y] =
+                        QueryCellWeighted(x0Int, y0Int, 1 - x0Frac, 1 - y0Frac) +
+                        QueryCellWeighted(x0Int + 1, y0Int, x0Frac, 1 - y0Frac) +
+                        QueryCellWeighted(x0Int, y0Int + 1, 1 - x0Frac, y0Frac) +
+                        QueryCellWeighted(x0Int + 1, y0Int + 1, x0Frac, y0Frac);
+                }
+            }
+
+            float QueryCellWeighted(int x, int y, float w, float h)
+            {
+                if (x < 0 || x >= xSize || y < 0 || y >= ySize)
+                {
+                    return 0;
+                }
+
+                return q0[x, y] * w * h;
             }
         }
 

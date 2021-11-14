@@ -11,14 +11,21 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <WrapPanel>
             <Button Command="{Binding GridViz.ResetCommand}">Reset</Button>
-            <Button Command="{Binding GridViz.ZeroDivCommand}">Enforce div(u)=0</Button>
-            <Button Command="{Binding GridViz.VolumeAdvectionCommand}">Volume advection</Button>
+            <Button Command="{Binding GridViz.StepCommand}">Step</Button>
+            <Button Command="{Binding GridViz.StartCommand}">Start</Button>
+            <Button Command="{Binding GridViz.StopCommand}">Stop</Button>
         </WrapPanel>
         
         <local:GridVizView Grid.Row="1" DataContext="{Binding GridViz}" />
+
+        <WrapPanel Grid.Row="2">
+            <Label Content="Total volume" />
+            <TextBox IsReadOnly="True" Text="{Binding GridViz.TotalVolume, Mode=OneWay}" />
+        </WrapPanel>
     </Grid>
 </Window>

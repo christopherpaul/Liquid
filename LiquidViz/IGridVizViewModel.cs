@@ -12,7 +12,10 @@ namespace LiquidViz
         float Scale { get; set; }
 
         ICommand ResetCommand { get; }
-        ICommand ZeroDivCommand { get; }
-        ICommand VolumeAdvectionCommand { get; }
+        ICommand StepCommand { get; }
+        ICommand StartCommand { get; }
+        ICommand StopCommand { get; }
+
+        float TotalVolume { get; }
     }
 }

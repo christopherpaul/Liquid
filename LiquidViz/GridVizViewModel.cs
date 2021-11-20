@@ -123,7 +123,7 @@ namespace LiquidViz
                 for (int y = 0; y < grid.YSize; y++)
                 {
                     var cellState = grid[x, y];
-                    Cells[i++] = new CellVizViewModel(x * Scale, y * Scale, cellState);
+                    Cells[i++] = new CellVizViewModel(x * Scale, y * Scale, cellState, 5);
                 }
             }
 
@@ -132,14 +132,16 @@ namespace LiquidViz
 
         private void ResetGrid()
         {
-            var rnd = new Random(2021);
+            //var rnd = new Random(2021);
             for (int x = 0; x < grid.XSize; x++)
             {
                 for (int y = 0; y < grid.YSize; y++)
                 {
-                    grid.SetVolume(x, y, x < 5 ? 0f : 1f);
-                    grid.SetU(x, y, (float)(rnd.NextDouble() * 10 - 5));
-                    grid.SetV(x, y, (float)(rnd.NextDouble() * 10 - 5));
+                    grid.SetVolume(x, y, x >= 10 && y >= 3 ? 1f : 0f);
+                    grid.SetU(x, y, 0);
+                    grid.SetV(x, y, 0);
+                    //grid.SetU(x, y, (float)(rnd.NextDouble() * 10 - 5));
+                    //grid.SetV(x, y, (float)(rnd.NextDouble() * 10 - 5));
                 }
             }
 

@@ -124,6 +124,7 @@ namespace LiquidSim
         /// </summary>
         public void EnforceNonDivergenceOfVelocity()
         {
+            CalculateVolumeStates();
             ApplyVelocityBoundaryCondition();
             FieldMaths.Divergence(u, v, divU);
             FieldMaths.SolvePoisson(divU, phi, 20, ApplyBoundaryConditions);
@@ -138,12 +139,66 @@ namespace LiquidSim
                 {
                     v[x, 0] = 0;
                     v[x, YSize] = 0;
+
+                    for (int y = 1; y < YSize; y++)
+                    {
+                        HalfVolumeState upperState = GetYVolumeState(volumeState[x, y - 1]);
+                        HalfVolumeState lowerState = GetYVolumeState(volumeState[x, y]);
+                        if ((upperState & HalfVolumeState.PositiveEnd) == 0 &&
+                            (lowerState & HalfVolumeState.NegativeEnd) == 0)
+                        {
+                            if (upperState == HalfVolumeState.None &&
+                                lowerState == HalfVolumeState.None)
+                            {
+                                v[x, y] = 0;
+                            }
+                            else if (upperState == HalfVolumeState.None)
+                            {
+                                v[x, y] = v[x, y + 1] + u[x + 1, y] - u[x, y];
+                            }
+                            else if (lowerState == HalfVolumeState.None)
+                            {
+                                v[x, y] = v[x, y - 1] + u[x, y - 1] - u[x + 1, y - 1];
+                            }
+                            else
+                            {
+                                v[x, y] = (v[x, y + 1] + u[x + 1, y] - u[x, y] + v[x, y - 1] + u[x, y - 1] - u[x + 1, y - 1]) / 2;
+                            }
+                        }
+                    }
                 }
 
                 for (int y = 0; y < YSize; y++)
                 {
                     u[0, y] = 0;
                     u[XSize, y] = 0;
+
+                    for (int x = 1; x < XSize; x++)
+                    {
+                        HalfVolumeState leftState = GetXVolumeState(volumeState[x - 1, y]);
+                        HalfVolumeState rightState = GetXVolumeState(volumeState[x, y]);
+                        if ((leftState & HalfVolumeState.PositiveEnd) == 0 &&
+                            (rightState & HalfVolumeState.NegativeEnd) == 0)
+                        {
+                            if (leftState == HalfVolumeState.None &&
+                                rightState == HalfVolumeState.None)
+                            {
+                                u[x, y] = 0;
+                            }
+                            else if (leftState == HalfVolumeState.None)
+                            {
+                                u[x, y] = u[x + 1, y] + v[x, y + 1] - v[x, y];
+                            }
+                            else if (rightState == HalfVolumeState.None)
+                            {
+                                u[x, y] = u[x - 1, y] + v[x - 1, y] - v[x - 1, y + 1];
+                            }
+                            else
+                            {
+                                u[x, y] = (u[x + 1, y] + v[x, y + 1] - v[x, y] + u[x - 1, y] + v[x - 1, y] - v[x - 1, y + 1]) / 2;
+                            }
+                        }
+                    }
                 }
             }
 

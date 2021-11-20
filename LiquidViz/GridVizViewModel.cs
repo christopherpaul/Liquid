@@ -21,6 +21,7 @@ namespace LiquidViz
         public GridVizViewModel()
         {
             grid = new Grid(20, 20);
+            grid.Gravity = 1;
             ResetGrid();
             Cells = new ObservableCollection<CellVizViewModel>(Enumerable.Repeat<CellVizViewModel>(default, grid.XSize * grid.YSize));
             UpdateCells();
@@ -74,7 +75,10 @@ namespace LiquidViz
             {
                 lock (tickSync)
                 {
-                    grid.DoStep(0.1f);
+                    for (int i = 0; i < 10; i++)
+                    {
+                        grid.DoStep(0.01f);
+                    }
                 }
                 syncContext.Post(_ => UpdateCells(), null);
             }
@@ -128,17 +132,14 @@ namespace LiquidViz
 
         private void ResetGrid()
         {
-            var rnd = new Random();
+            var rnd = new Random(2021);
             for (int x = 0; x < grid.XSize; x++)
             {
                 for (int y = 0; y < grid.YSize; y++)
                 {
-                    if (y < 5)
-                        grid[x, y] = default;
-                    else
-                    {
-                        grid[x, y] = new CellState(1, (float)(rnd.NextDouble() * 10 - 5), (float)(rnd.NextDouble() * 10 - 5)); // no this isn't consistent
-                    }
+                    grid.SetVolume(x, y, x < 5 ? 0f : 1f);
+                    grid.SetU(x, y, (float)(rnd.NextDouble() * 10 - 5));
+                    grid.SetV(x, y, (float)(rnd.NextDouble() * 10 - 5));
                 }
             }
 

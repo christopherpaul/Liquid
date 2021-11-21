@@ -144,7 +144,7 @@ namespace LiquidSim
                     {
                         HalfVolumeState upperState = GetYVolumeState(volumeState[x, y - 1]);
                         HalfVolumeState lowerState = GetYVolumeState(volumeState[x, y]);
-                        if ((upperState & HalfVolumeState.PositiveEnd) == 0 &&
+                        if ((upperState & HalfVolumeState.PositiveEnd) == 0 ||
                             (lowerState & HalfVolumeState.NegativeEnd) == 0)
                         {
                             if (upperState == HalfVolumeState.None &&
@@ -177,7 +177,7 @@ namespace LiquidSim
                     {
                         HalfVolumeState leftState = GetXVolumeState(volumeState[x - 1, y]);
                         HalfVolumeState rightState = GetXVolumeState(volumeState[x, y]);
-                        if ((leftState & HalfVolumeState.PositiveEnd) == 0 &&
+                        if ((leftState & HalfVolumeState.PositiveEnd) == 0 ||
                             (rightState & HalfVolumeState.NegativeEnd) == 0)
                         {
                             if (leftState == HalfVolumeState.None &&
@@ -204,6 +204,8 @@ namespace LiquidSim
 
             void ApplyBoundaryConditions(float[,] phi)
             {
+                // Force (n·∇)φ = 0 at outer boundary of grid (n = normal) to ensure
+                // initial n·u = 0 (no flow across boundary) is preserved
                 for (int x = 1; x < XSize + 1; x++)
                 {
                     phi[x, 0] = phi[x, 1];
@@ -214,6 +216,22 @@ namespace LiquidSim
                 {
                     phi[0, y] = phi[1, y];
                     phi[XSize + 1, y] = phi[XSize, y];
+                }
+
+                // Set φ = 0 at any free surfaces. φ corresponds to pressure, so this is
+                // only correct if we assume all free surfaces are connected (or if there is
+                // only vacuum and not gas where liquid isn't, I suppose). [Future enhancement:
+                // track connected volumes of air and determine a time-varying pressure for
+                // each.]
+                for (int x = 1; x < XSize + 1; x++)
+                {
+                    for (int y = 1; y < YSize + 1; y++)
+                    {
+                        if (volumeState[x - 1, y - 1] != VolumeState.All)
+                        {
+                            phi[x, y] = 0;
+                        }
+                    }
                 }
             }
         }
@@ -518,7 +536,8 @@ namespace LiquidSim
             {
                 for (int y = 0; y < YSize; y++)
                 {
-                    volumeState[x, y] = GetVolumeState(x, y);
+                    VolumeState s = GetVolumeState(x, y);
+                    volumeState[x, y] = s;
                 }
             }
         }

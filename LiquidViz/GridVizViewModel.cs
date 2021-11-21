@@ -123,7 +123,7 @@ namespace LiquidViz
                 for (int y = 0; y < grid.YSize; y++)
                 {
                     var cellState = grid[x, y];
-                    Cells[i++] = new CellVizViewModel(x * Scale, y * Scale, cellState, 5);
+                    Cells[i++] = new CellVizViewModel(x * Scale, y * Scale, cellState, 2);
                 }
             }
 

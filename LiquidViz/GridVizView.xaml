@@ -25,10 +25,10 @@
         </ItemsControl.ItemContainerStyle>
         <ItemsControl.ItemTemplate>
             <DataTemplate DataType="{x:Type local:CellVizViewModel}">
-                <Canvas>
+                <Canvas Opacity="{Binding Volume}">
                     <Ellipse Width="10" Height="10" Canvas.Left="-5" Canvas.Top="-5" 
                              Fill="Aqua"
-                             Opacity="{Binding Volume}"/>
+                             />
                     <Line X1="0" Y1="0" X2="{Binding XVelocity}" Y2="{Binding YVelocity}"
                           Stroke="Navy" />
                 </Canvas>

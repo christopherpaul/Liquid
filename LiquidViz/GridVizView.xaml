@@ -7,14 +7,15 @@
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800"
              d:DataContext="{d:DesignInstance Type=local:GridVizViewModel}">
-    <ItemsControl ItemsSource="{Binding Cells}">
-        <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-                <Canvas>
-                </Canvas>
-            </ItemsPanelTemplate>
-        </ItemsControl.ItemsPanel>
-        <ItemsControl.ItemContainerStyle>
+    <Border BorderBrush="BurlyWood" BorderThickness="4">
+        <ItemsControl ItemsSource="{Binding Cells}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Canvas Width="{Binding Width}" Height="{Binding Height}">
+                    </Canvas>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <!--        <ItemsControl.ItemContainerStyle>
             <Style TargetType="{x:Type ContentPresenter}">
                 <d:Style.DataContext>
                     <x:Type Type="local:CellVizViewModel" />
@@ -22,17 +23,20 @@
                 <Setter Property="Canvas.Left" Value="{Binding X}" />
                 <Setter Property="Canvas.Top" Value="{Binding Y}" />
             </Style>
-        </ItemsControl.ItemContainerStyle>
-        <ItemsControl.ItemTemplate>
-            <DataTemplate DataType="{x:Type local:CellVizViewModel}">
-                <Canvas Opacity="{Binding Volume}">
-                    <Ellipse Width="10" Height="10" Canvas.Left="-5" Canvas.Top="-5" 
+        </ItemsControl.ItemContainerStyle> -->
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type local:CellVizViewModel}">
+                    <Canvas>
+                        <Rectangle Canvas.Left="{Binding X}" Canvas.Top="{Binding Y}"
+                               Width="{Binding Width}" Height="{Binding Height}"
                              Fill="Aqua"
                              />
-                    <Line X1="0" Y1="0" X2="{Binding XVelocity}" Y2="{Binding YVelocity}"
-                          Stroke="Navy" />
-                </Canvas>
-            </DataTemplate>
-        </ItemsControl.ItemTemplate>
-    </ItemsControl>
+                        <Line X1="{Binding ArrowX1}" Y1="{Binding ArrowY1}" X2="{Binding ArrowX2}" Y2="{Binding ArrowY2}"
+                          Stroke="Navy"
+                          Opacity="{Binding Volume}"/>
+                    </Canvas>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Border>
 </UserControl>

@@ -72,16 +72,19 @@ namespace LiquidSim
         public int XSize { get; }
         public int YSize { get; }
 
-        public CellState this[int x, int y]
-        {
-            get => new CellState(volume[x, y], (u[x, y] + u[x + 1, y]) / 2, (v[x, y] + v[x, y + 1]) / 2);
-        }
+        public CellState this[int x, int y] => GetCellState(x, y);
 
         public void SetVolume(int x, int y, float vol) => volume[x, y] = vol;
         public void SetU(int x, int y, float value) => u[x, y] = value;
         public void SetV(int x, int y, float value) => v[x, y] = value;
 
-        public void DoStep(float dt)
+        public void PostInitialise()
+        {
+            EnforceNonDivergenceOfVelocity();
+            CalculateVolumeStates();
+        }
+
+        public void Step(float dt)
         {
             CalculateVolumeStates();
 
@@ -117,12 +120,14 @@ namespace LiquidSim
             DoVolumeAdvection(dt, out _); // ignore no-doubt horrible mounting errors for now
 
             DoVelocityEvolution(dt);
+
+            CalculateVolumeStates();
         }
 
         /// <summary>
         /// Enforces non-divergence on u and v
         /// </summary>
-        public void EnforceNonDivergenceOfVelocity()
+        private void EnforceNonDivergenceOfVelocity()
         {
             CalculateVolumeStates();
             ApplyVelocityBoundaryCondition();
@@ -236,7 +241,7 @@ namespace LiquidSim
             }
         }
 
-        public void DoVolumeAdvection(float dt, out float maxError)
+        private void DoVolumeAdvection(float dt, out float maxError)
         {
             // First attempt at doing volume advection was very flawed as it used similar
             // method to SimpleAdvection but "queried" a cell-sized square around the back-projected
@@ -371,7 +376,7 @@ namespace LiquidSim
             (volume, tempVolume) = (tempVolume, volume);
         }
 
-        public void DoVelocityEvolution(float dt)
+        private void DoVelocityEvolution(float dt)
         {
             FieldMaths.Add(v, Gravity);
 
@@ -585,5 +590,16 @@ namespace LiquidSim
             return best;
         }
 
+        private CellState GetCellState(int x, int y)
+        {
+            var s = volumeState[x, y];
+            var vol = Math.Min(1, Math.Max(0, volume[x, y]));
+            float volumeX = x + ((s & VolumeState.XNegativeEnd) != 0 ? 0 : (1 - vol));
+            float volumeY = y + ((s & VolumeState.YNegativeEnd) != 0 ? 0 : (1 - vol));
+            float volumeW = (s & VolumeState.XAll) != VolumeState.XAll ? vol : 1;
+            float volumeH = (s & VolumeState.YAll) != VolumeState.YAll ? vol : 1;
+
+            return new CellState(vol, volumeX, volumeY, volumeW, volumeH, (u[x, y] + u[x + 1, y]) / 2, (v[x, y] + v[x, y + 1]) / 2);
+        }
     }
 }

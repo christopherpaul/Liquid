@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:LiquidViz" 
         d:DataContext="{d:DesignInstance Type=local:MainViewModel}"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="600" Width="600">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -21,7 +21,7 @@
             <Button Command="{Binding GridViz.StopCommand}">Stop</Button>
         </WrapPanel>
         
-        <local:GridVizView Grid.Row="1" DataContext="{Binding GridViz}" />
+        <local:GridVizView Grid.Row="1" DataContext="{Binding GridViz}" HorizontalAlignment="Center" VerticalAlignment="Center" />
 
         <WrapPanel Grid.Row="2">
             <Label Content="Total volume" />

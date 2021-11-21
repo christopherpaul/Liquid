@@ -15,7 +15,7 @@ namespace LiquidViz
     internal sealed class GridVizViewModel : ObservableObject, IGridVizViewModel
     {
         private readonly Grid grid;
-        private float scale = 20;
+        private float scale = 24;
         private float totalVolume;
 
         public GridVizViewModel()
@@ -77,7 +77,7 @@ namespace LiquidViz
                 {
                     for (int i = 0; i < 10; i++)
                     {
-                        grid.DoStep(0.01f);
+                        grid.Step(0.01f);
                     }
                 }
                 syncContext.Post(_ => UpdateCells(), null);
@@ -90,6 +90,9 @@ namespace LiquidViz
             }
         }
 
+        public float Width => grid.XSize * Scale;
+        public float Height => grid.YSize * Scale;
+
         public ObservableCollection<CellVizViewModel> Cells { get; }
 
         public float Scale
@@ -100,6 +103,8 @@ namespace LiquidViz
                 if (SetProperty(ref scale, value))
                 {
                     UpdateCells();
+                    OnPropertyChanged(nameof(Width));
+                    OnPropertyChanged(nameof(Height));
                 }
             }
         }
@@ -123,7 +128,7 @@ namespace LiquidViz
                 for (int y = 0; y < grid.YSize; y++)
                 {
                     var cellState = grid[x, y];
-                    Cells[i++] = new CellVizViewModel(x * Scale, y * Scale, cellState, 2);
+                    Cells[i++] = new CellVizViewModel(x, y, cellState, Scale, 2);
                 }
             }
 
@@ -145,7 +150,7 @@ namespace LiquidViz
                 }
             }
 
-            grid.EnforceNonDivergenceOfVelocity();
+            grid.PostInitialise();
         }
     }
 }

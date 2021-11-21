@@ -17,5 +17,8 @@ namespace LiquidViz
         ICommand StopCommand { get; }
 
         float TotalVolume { get; }
+        float ExternalForceX { get; set; }
+        float ExternalForceY { get; set; }
+        float Viscosity { get; set; }
     }
 }

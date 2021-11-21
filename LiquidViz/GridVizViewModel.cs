@@ -21,7 +21,7 @@ namespace LiquidViz
         public GridVizViewModel()
         {
             grid = new Grid(20, 20);
-            grid.Gravity = 1;
+            grid.ExternalForceY = 1;
             ResetGrid();
             Cells = new ObservableCollection<CellVizViewModel>(Enumerable.Repeat<CellVizViewModel>(default, grid.XSize * grid.YSize));
             UpdateCells();
@@ -106,6 +106,36 @@ namespace LiquidViz
                     OnPropertyChanged(nameof(Width));
                     OnPropertyChanged(nameof(Height));
                 }
+            }
+        }
+
+        public float ExternalForceX
+        {
+            get => grid.ExternalForceX;
+            set
+            {
+                grid.ExternalForceX = value;
+                OnPropertyChanged(nameof(ExternalForceX));
+            }
+        }
+
+        public float ExternalForceY
+        {
+            get => grid.ExternalForceY;
+            set
+            {
+                grid.ExternalForceY = value;
+                OnPropertyChanged(nameof(ExternalForceY));
+            }
+        }
+
+        public float Viscosity
+        {
+            get => (float)Math.Log10(grid.Viscosity);
+            set
+            {
+                grid.Viscosity = (float)Math.Pow(10, value);
+                OnPropertyChanged(nameof(Viscosity));
             }
         }
 

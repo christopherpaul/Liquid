@@ -67,7 +67,8 @@ namespace LiquidSim
 
         public float Density { get; set; }
         public float Viscosity { get; set; }
-        public float Gravity { get; set; }
+        public float ExternalForceX { get; set; }
+        public float ExternalForceY { get; set; }
 
         public int XSize { get; }
         public int YSize { get; }
@@ -378,7 +379,8 @@ namespace LiquidSim
 
         private void DoVelocityEvolution(float dt)
         {
-            FieldMaths.Add(v, Gravity);
+            FieldMaths.Add(u, ExternalForceX);
+            FieldMaths.Add(v, ExternalForceY);
 
             FieldMaths.Diffuse(u, dt, Viscosity, tempU, 20);
             FieldMaths.Diffuse(v, dt, Viscosity, tempV, 20);

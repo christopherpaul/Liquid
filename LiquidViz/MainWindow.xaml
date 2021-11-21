@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:LiquidViz" 
         d:DataContext="{d:DesignInstance Type=local:MainViewModel}"
         mc:Ignorable="d"
-        Title="MainWindow" Height="600" Width="600">
+        Title="MainWindow" Height="650" Width="700">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -19,6 +19,24 @@
             <Button Command="{Binding GridViz.StepCommand}">Step</Button>
             <Button Command="{Binding GridViz.StartCommand}">Start</Button>
             <Button Command="{Binding GridViz.StopCommand}">Stop</Button>
+
+            <StackPanel Orientation="Horizontal">
+                <Label>Ext force X</Label>
+                <Slider Value="{Binding GridViz.ExternalForceX}" Minimum="-2" Maximum="2" 
+                        Width="100" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal">
+                <Label>Ext force Y</Label>
+                <Slider Value="{Binding GridViz.ExternalForceY}" Minimum="-2" Maximum="2"
+                        Width="100" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal">
+                <Label>Viscosity</Label>
+                <Slider Value="{Binding GridViz.Viscosity}" Minimum="-1" Maximum="5"
+                        Width="100" />
+            </StackPanel>
         </WrapPanel>
         
         <local:GridVizView Grid.Row="1" DataContext="{Binding GridViz}" HorizontalAlignment="Center" VerticalAlignment="Center" />

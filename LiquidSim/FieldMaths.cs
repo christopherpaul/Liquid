@@ -81,7 +81,7 @@ namespace LiquidSim
         {
             CheckConsistentDimensions(f, φ, 2, 2);
 
-            Clear(φ);
+            //Clear(φ);
 
             for (int i = 0; i < iterations; i++)
             {

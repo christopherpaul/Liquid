@@ -8,35 +8,8 @@
              d:DesignHeight="450" d:DesignWidth="800"
              d:DataContext="{d:DesignInstance Type=local:GridVizViewModel}">
     <Border BorderBrush="BurlyWood" BorderThickness="4">
-        <ItemsControl ItemsSource="{Binding Cells}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <Canvas Width="{Binding Width}" Height="{Binding Height}">
-                    </Canvas>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <!--        <ItemsControl.ItemContainerStyle>
-            <Style TargetType="{x:Type ContentPresenter}">
-                <d:Style.DataContext>
-                    <x:Type Type="local:CellVizViewModel" />
-                </d:Style.DataContext>
-                <Setter Property="Canvas.Left" Value="{Binding X}" />
-                <Setter Property="Canvas.Top" Value="{Binding Y}" />
-            </Style>
-        </ItemsControl.ItemContainerStyle> -->
-            <ItemsControl.ItemTemplate>
-                <DataTemplate DataType="{x:Type local:CellVizViewModel}">
-                    <Canvas>
-                        <Rectangle Canvas.Left="{Binding X}" Canvas.Top="{Binding Y}"
-                               Width="{Binding Width}" Height="{Binding Height}"
-                             Fill="Aqua"
-                             />
-                        <Line X1="{Binding ArrowX1}" Y1="{Binding ArrowY1}" X2="{Binding ArrowX2}" Y2="{Binding ArrowY2}"
-                          Stroke="Navy"
-                          Opacity="{Binding Volume}"/>
-                    </Canvas>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <local:LiquidViewer Width="{Binding Width}" Height="{Binding Height}"
+                            Cells="{Binding Cells}"
+                            />
     </Border>
 </UserControl>

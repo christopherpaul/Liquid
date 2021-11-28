@@ -6,6 +6,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Threading;
 using LiquidSim;
 using Microsoft.Toolkit.Mvvm.ComponentModel;
 using Microsoft.Toolkit.Mvvm.Input;
@@ -15,18 +17,34 @@ namespace LiquidViz
     internal sealed class GridVizViewModel : ObservableObject, IGridVizViewModel
     {
         private readonly Grid grid;
-        private float scale = 24;
+        private float scale = 6;
         private float totalVolume;
+        private IEnumerable<CellVizViewModel> cells;
+        private readonly Brush normalFill;
+        private readonly Brush largeErrorFill;
 
         public GridVizViewModel()
         {
-            grid = new Grid(20, 20);
+            grid = new Grid(80, 80);
             grid.ExternalForceY = 1;
             ResetGrid();
-            Cells = new ObservableCollection<CellVizViewModel>(Enumerable.Repeat<CellVizViewModel>(default, grid.XSize * grid.YSize));
+
+            normalFill = new SolidColorBrush
+            {
+                Color = Colors.Aqua
+            };
+            normalFill.Freeze();
+
+            largeErrorFill = new SolidColorBrush
+            {
+                Color = Colors.Red
+            };
+            largeErrorFill.Freeze();
+
             UpdateCells();
 
-            var syncContext = SynchronizationContext.Current;
+            var dispatcher = Dispatcher.CurrentDispatcher;
+            DispatcherOperation pendingUpdate = null;
 
             object tickSync = new object();
             var tickTimer = new Timer(_ => Tick());
@@ -80,7 +98,8 @@ namespace LiquidViz
                         grid.Step(0.01f);
                     }
                 }
-                syncContext.Post(_ => UpdateCells(), null);
+                pendingUpdate?.Abort();
+                pendingUpdate = dispatcher.BeginInvoke(UpdateCells, DispatcherPriority.Background);
             }
 
             void OnStartStop()
@@ -93,7 +112,11 @@ namespace LiquidViz
         public float Width => grid.XSize * Scale;
         public float Height => grid.YSize * Scale;
 
-        public ObservableCollection<CellVizViewModel> Cells { get; }
+        public IEnumerable<CellVizViewModel> Cells
+        {
+            get => cells;
+            set => SetProperty(ref cells, value);
+        }
 
         public float Scale
         {
@@ -152,16 +175,22 @@ namespace LiquidViz
 
         private void UpdateCells()
         {
-            int i = 0;
+            var cells = new List<CellVizViewModel>(grid.XSize * grid.YSize);
             for (int x = 0; x < grid.XSize; x++)
             {
                 for (int y = 0; y < grid.YSize; y++)
                 {
                     var cellState = grid[x, y];
-                    Cells[i++] = new CellVizViewModel(x, y, cellState, Scale, 2);
+                    if (cellState.Volume >= 0)
+                    {
+                        var fill = cellState.Volume > 1.5f ? largeErrorFill : normalFill;
+                        var cellVm = new CellVizViewModel(x, y, cellState, Scale, 40f / grid.XSize, fill);
+                        cells.Add(cellVm);
+                    }
                 }
             }
 
+            Cells = cells;
             TotalVolume = grid.GetTotalVolume();
         }
 
@@ -172,7 +201,7 @@ namespace LiquidViz
             {
                 for (int y = 0; y < grid.YSize; y++)
                 {
-                    grid.SetVolume(x, y, x >= 10 && y >= 3 ? 1f : 0f);
+                    grid.SetVolume(x, y, x >= grid.XSize / 2 && y >= grid.YSize / 6 ? 1f : 0f);
                     grid.SetU(x, y, 0);
                     grid.SetV(x, y, 0);
                     //grid.SetU(x, y, (float)(rnd.NextDouble() * 10 - 5));

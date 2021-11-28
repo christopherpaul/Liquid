@@ -595,13 +595,14 @@ namespace LiquidSim
         private CellState GetCellState(int x, int y)
         {
             var s = volumeState[x, y];
-            var vol = Math.Min(1, Math.Max(0, volume[x, y]));
-            float volumeX = x + ((s & VolumeState.XNegativeEnd) != 0 ? 0 : (1 - vol));
-            float volumeY = y + ((s & VolumeState.YNegativeEnd) != 0 ? 0 : (1 - vol));
-            float volumeW = (s & VolumeState.XAll) != VolumeState.XAll ? vol : 1;
-            float volumeH = (s & VolumeState.YAll) != VolumeState.YAll ? vol : 1;
+            float unclippedVolume = volume[x, y];
+            var clippedVolume = Math.Min(1, Math.Max(0, (float)unclippedVolume));
+            float volumeX = x + ((s & VolumeState.XNegativeEnd) != 0 ? 0 : (1 - clippedVolume));
+            float volumeY = y + ((s & VolumeState.YNegativeEnd) != 0 ? 0 : (1 - clippedVolume));
+            float volumeW = (s & VolumeState.XAll) != VolumeState.XAll ? clippedVolume : 1;
+            float volumeH = (s & VolumeState.YAll) != VolumeState.YAll ? clippedVolume : 1;
 
-            return new CellState(vol, volumeX, volumeY, volumeW, volumeH, (u[x, y] + u[x + 1, y]) / 2, (v[x, y] + v[x, y + 1]) / 2);
+            return new CellState(unclippedVolume, volumeX, volumeY, volumeW, volumeH, (u[x, y] + u[x + 1, y]) / 2, (v[x, y] + v[x, y + 1]) / 2);
         }
     }
 }

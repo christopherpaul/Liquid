@@ -8,7 +8,7 @@ using System.Windows.Media;
 
 namespace LiquidViz
 {
-    public record class CellVizViewModel(int XIndex, int YIndex, CellState CellState, float CellScale, float ArrowScale)
+    public record class CellVizViewModel(int XIndex, int YIndex, CellState CellState, float CellScale, float ArrowScale, Brush Fill)
     {
         public float X => CellState.VolumeX * CellScale;
         public float Y => CellState.VolumeY * CellScale;

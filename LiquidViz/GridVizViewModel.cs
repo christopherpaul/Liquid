@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -22,12 +23,18 @@ namespace LiquidViz
         private IEnumerable<CellVizViewModel> cells;
         private readonly Brush normalFill;
         private readonly Brush largeErrorFill;
+        private float positiveDivError;
+        private float negativeDivError;
+        private float timeStep;
+        private float tickProcessingDuration;
 
         public GridVizViewModel()
         {
             grid = new Grid(80, 80);
             grid.ExternalForceY = 1;
             ResetGrid();
+
+            timeStep = 0.01f;
 
             normalFill = new SolidColorBrush
             {
@@ -47,6 +54,7 @@ namespace LiquidViz
             DispatcherOperation pendingUpdate = null;
 
             object tickSync = new object();
+            int ticksInProgress = 0;
             var tickTimer = new Timer(_ => Tick());
             bool isRunning = false;
 
@@ -91,13 +99,29 @@ namespace LiquidViz
 
             void Tick()
             {
-                lock (tickSync)
+                if (Interlocked.Increment(ref ticksInProgress) <= 2)
                 {
-                    for (int i = 0; i < 10; i++)
+                    lock (tickSync)
                     {
-                        grid.Step(0.01f);
+                        var sw = new Stopwatch();
+                        sw.Start();
+                        float remainingTickTime = 0.1f;
+                        while (remainingTickTime > 0)
+                        {
+                            grid.Step(Math.Min(remainingTickTime, timeStep));
+                            remainingTickTime -= timeStep;
+                        }
+                        sw.Stop();
+                        TickProcessingDuration = sw.ElapsedMilliseconds;
+
+                        grid.GetDivergenceErrorInfo(out float totalPositiveError, out float totalNegativeError);
+                        PositiveDivError = totalPositiveError;
+                        NegativeDivError = totalNegativeError;
                     }
                 }
+
+                Interlocked.Decrement(ref ticksInProgress);
+
                 pendingUpdate?.Abort();
                 pendingUpdate = dispatcher.BeginInvoke(UpdateCells, DispatcherPriority.Background);
             }
@@ -152,15 +176,32 @@ namespace LiquidViz
             }
         }
 
-        public float Viscosity
+        public float LogViscosity
         {
             get => (float)Math.Log10(grid.Viscosity);
             set
             {
                 grid.Viscosity = (float)Math.Pow(10, value);
+                OnPropertyChanged(nameof(LogViscosity));
                 OnPropertyChanged(nameof(Viscosity));
             }
         }
+
+        public float Viscosity => grid.Viscosity;
+
+        public float LogTimeStep
+        {
+            get => (float)Math.Log10(timeStep);
+            set
+            {
+                if (SetProperty(ref timeStep, (float)Math.Pow(10, value)))
+                {
+                    OnPropertyChanged(nameof(TimeStep));
+                }
+            }
+        }
+
+        public float TimeStep => timeStep;
 
         public ICommand ResetCommand { get; }
         public ICommand StepCommand { get; }
@@ -171,6 +212,24 @@ namespace LiquidViz
         {
             get => totalVolume;
             private set => SetProperty(ref totalVolume, value);
+        }
+
+        public float PositiveDivError
+        {
+            get => positiveDivError;
+            private set => SetProperty(ref positiveDivError, value);
+        }
+
+        public float NegativeDivError
+        {
+            get => negativeDivError;
+            private set => SetProperty(ref negativeDivError, value);
+        }
+
+        public float TickProcessingDuration
+        {
+            get => tickProcessingDuration;
+            private set => SetProperty(ref tickProcessingDuration, value);
         }
 
         private void UpdateCells()

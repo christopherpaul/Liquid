@@ -500,6 +500,38 @@ namespace LiquidSim
             return v;
         }
 
+        public void GetDivergenceErrorInfo(
+            out float positiveErrorPerCell,
+            out float negativeErrorPerCell)
+        {
+            FieldMaths.Divergence(u, v, divU);
+            float totalPositive = 0;
+            float totalNegative = 0;
+            int totalFullCells = 0;
+            for (int x = 0; x < XSize; x++)
+            {
+                for (int y = 0; y < YSize; y++)
+                {
+                    if (volume[x, y] >= 1)
+                    {
+                        totalFullCells++;
+                        float d = divU[x, y];
+                        if (d > 0)
+                        {
+                            totalPositive += d;
+                        }
+                        else
+                        {
+                            totalNegative -= d;
+                        }
+                    }
+                }
+            }
+
+            positiveErrorPerCell = totalPositive / totalFullCells;
+            negativeErrorPerCell = totalNegative / totalFullCells;
+        }
+
         [Flags]
         private enum HalfVolumeState
         {

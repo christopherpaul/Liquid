@@ -16,9 +16,17 @@ namespace LiquidViz
         ICommand StartCommand { get; }
         ICommand StopCommand { get; }
 
-        float TotalVolume { get; }
         float ExternalForceX { get; set; }
         float ExternalForceY { get; set; }
-        float Viscosity { get; set; }
+        float Viscosity { get; }
+        float LogViscosity { get; set; }
+        float TimeStep { get; }
+        float LogTimeStep { get; set; }
+
+        float TotalVolume { get; }
+        float PositiveDivError { get; }
+        float NegativeDivError { get; }
+
+        float TickProcessingDuration { get; }
     }
 }

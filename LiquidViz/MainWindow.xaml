@@ -20,22 +20,32 @@
             <Button Command="{Binding GridViz.StartCommand}">Start</Button>
             <Button Command="{Binding GridViz.StopCommand}">Stop</Button>
 
-            <StackPanel Orientation="Horizontal">
+            <StackPanel>
                 <Label>Ext force X</Label>
                 <Slider Value="{Binding GridViz.ExternalForceX}" Minimum="-2" Maximum="2" 
                         Width="100" />
+                <TextBox Text="{Binding GridViz.ExternalForceX, Mode=OneWay}" />
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal">
+            <StackPanel>
                 <Label>Ext force Y</Label>
                 <Slider Value="{Binding GridViz.ExternalForceY}" Minimum="-2" Maximum="2"
                         Width="100" />
+                <TextBox Text="{Binding GridViz.ExternalForceY, Mode=OneWay}" />
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal">
+            <StackPanel>
                 <Label>Viscosity</Label>
-                <Slider Value="{Binding GridViz.Viscosity}" Minimum="-1" Maximum="5"
+                <Slider Value="{Binding GridViz.LogViscosity}" Minimum="-1" Maximum="5"
                         Width="100" />
+                <TextBox Text="{Binding GridViz.Viscosity, Mode=OneWay}" />
+            </StackPanel>
+
+            <StackPanel>
+                <Label>Time step</Label>
+                <Slider Value="{Binding GridViz.LogTimeStep}" Minimum="-4" Maximum="-1"
+                        Width="100" />
+                <TextBox Text="{Binding GridViz.TimeStep, Mode=OneWay}" />
             </StackPanel>
         </WrapPanel>
         
@@ -44,6 +54,12 @@
         <WrapPanel Grid.Row="2">
             <Label Content="Total volume" />
             <TextBox IsReadOnly="True" Text="{Binding GridViz.TotalVolume, Mode=OneWay}" />
+            <Label Content="Pos div error" />
+            <TextBox IsReadOnly="True" Text="{Binding GridViz.PositiveDivError, Mode=OneWay}" />
+            <Label Content="Neg div error" />
+            <TextBox IsReadOnly="True" Text="{Binding GridViz.NegativeDivError, Mode=OneWay}" />
+            <Label Content="Tick processing duration (ms)" />
+            <TextBox IsReadOnly="True" Text="{Binding GridViz.TickProcessingDuration, Mode=OneWay}" />
         </WrapPanel>
     </Grid>
 </Window>

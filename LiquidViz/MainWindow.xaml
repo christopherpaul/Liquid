@@ -6,7 +6,13 @@
         xmlns:local="clr-namespace:LiquidViz" 
         d:DataContext="{d:DesignInstance Type=local:MainViewModel}"
         mc:Ignorable="d"
-        Title="MainWindow" Height="650" Width="700">
+        Title="MainWindow" Height="650" Width="800">
+    <Window.Resources>
+        <Style TargetType="{x:Type Button}">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="2" />
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -46,6 +52,13 @@
                 <Slider Value="{Binding GridViz.LogTimeStep}" Minimum="-4" Maximum="-1"
                         Width="100" />
                 <TextBox Text="{Binding GridViz.TimeStep, Mode=OneWay}" />
+            </StackPanel>
+
+            <StackPanel>
+                <Label>Overvolume correction factor</Label>
+                <Slider Value="{Binding GridViz.OvervolumeCorrection}" Minimum="0" Maximum="1"
+                        Width="100" />
+                <TextBox Text="{Binding GridViz.OvervolumeCorrection, Mode=OneWay}" />
             </StackPanel>
         </WrapPanel>
         

@@ -203,6 +203,16 @@ namespace LiquidViz
 
         public float TimeStep => timeStep;
 
+        public float OvervolumeCorrection
+        {
+            get => grid.OvervolumeCorrectionFactor;
+            set
+            {
+                grid.OvervolumeCorrectionFactor = value;
+                OnPropertyChanged(nameof(OvervolumeCorrection));
+            }
+        }
+
         public ICommand ResetCommand { get; }
         public ICommand StepCommand { get; }
         public ICommand StartCommand { get; }

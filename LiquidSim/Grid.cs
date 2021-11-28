@@ -73,6 +73,8 @@ namespace LiquidSim
         public int XSize { get; }
         public int YSize { get; }
 
+        public float OvervolumeCorrectionFactor { get; set; }
+
         public CellState this[int x, int y] => GetCellState(x, y);
 
         public void SetVolume(int x, int y, float vol) => volume[x, y] = vol;
@@ -81,6 +83,7 @@ namespace LiquidSim
 
         public void PostInitialise()
         {
+            FieldMaths.Clear(phi);
             EnforceNonDivergenceOfVelocity();
             CalculateVolumeStates();
         }
@@ -133,6 +136,7 @@ namespace LiquidSim
             CalculateVolumeStates();
             ApplyVelocityBoundaryCondition();
             FieldMaths.Divergence(u, v, divU);
+            ApplyOvervolumeDivergenceCorrection();
             FieldMaths.SolvePoisson(divU, phi, 20, ApplyBoundaryConditions);
             FieldMaths.Gradient(phi, gradPhiX, gradPhiY);
             FieldMaths.MultiplyAdd(gradPhiX, -1, u, 0, 1, 0, 0, XSize + 1, YSize);
@@ -236,6 +240,31 @@ namespace LiquidSim
                         if (volumeState[x - 1, y - 1] != VolumeState.All)
                         {
                             phi[x, y] = 0;
+                        }
+                    }
+                }
+            }
+
+            void ApplyOvervolumeDivergenceCorrection()
+            {
+                float corrFactor = OvervolumeCorrectionFactor;
+                if (corrFactor == 0f)
+                {
+                    return;
+                }
+
+                for (int x = 0; x < XSize; x++)
+                {
+                    for (int y = 0; y < YSize; y++)
+                    {
+                        float overvolume = volume[x, y] - 1f;
+                        if (overvolume > 0f)
+                        {
+                            // normally we want zero divergence, but to push out the excess
+                            // volume we want positive divergence - so we artificially
+                            // lower the pre-projected divergence so that when the projection
+                            // is done the result will be higher.
+                            divU[x, y] -= corrFactor * Math.Min(overvolume, 1f);
                         }
                     }
                 }

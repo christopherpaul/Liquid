@@ -22,6 +22,7 @@ namespace LiquidViz
         float LogViscosity { get; set; }
         float TimeStep { get; }
         float LogTimeStep { get; set; }
+        float OvervolumeCorrection { get; set; }
 
         float TotalVolume { get; }
         float PositiveDivError { get; }

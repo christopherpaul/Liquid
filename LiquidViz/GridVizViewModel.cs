@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -53,12 +53,11 @@ namespace LiquidViz
             var dispatcher = Dispatcher.CurrentDispatcher;
             DispatcherOperation pendingUpdate = null;
 
+            var tickPeriod = TimeSpan.FromSeconds(0.015);
             object tickSync = new object();
             int ticksInProgress = 0;
             var tickTimer = new Timer(_ => Tick());
             bool isRunning = false;
-
-            var tickPeriod = TimeSpan.FromSeconds(0.1);
 
             ResetCommand = new RelayCommand(() =>
             {
@@ -105,7 +104,7 @@ namespace LiquidViz
                     {
                         var sw = new Stopwatch();
                         sw.Start();
-                        float remainingTickTime = 0.1f;
+                        float remainingTickTime = (float)tickPeriod.TotalSeconds;
                         while (remainingTickTime > 0)
                         {
                             grid.Step(Math.Min(remainingTickTime, timeStep));

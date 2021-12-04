@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -27,6 +27,8 @@ namespace LiquidViz
         float TotalVolume { get; }
         float PositiveDivError { get; }
         float NegativeDivError { get; }
+
+        float? CursorPressure { get; }
 
         float TickProcessingDuration { get; }
     }

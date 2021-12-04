@@ -38,11 +38,11 @@ namespace LiquidSim
         private readonly float[,] divU;
 
         /// <summary>
-        /// Solution to ∇²φ = ∇·u
+        /// Solution to ∇²P = ∇·u
         /// </summary>
-        private readonly float[,] phi;
-        private readonly float[,] gradPhiX;
-        private readonly float[,] gradPhiY;
+        private readonly float[,] pressure;
+        private readonly float[,] gradPressureX;
+        private readonly float[,] gradPressureY;
 
         public Grid(int xSize, int ySize)
         {
@@ -57,9 +57,9 @@ namespace LiquidSim
             v = new float[xSize, ySize + 1];
             tempV = new float[xSize, ySize + 1];
             divU = new float[xSize, ySize];
-            phi = new float[xSize + 2, ySize + 2];
-            gradPhiX = new float[xSize + 1, ySize + 2];
-            gradPhiY = new float[xSize + 2, ySize + 1];
+            pressure = new float[xSize + 2, ySize + 2];
+            gradPressureX = new float[xSize + 1, ySize + 2];
+            gradPressureY = new float[xSize + 2, ySize + 1];
 
             Density = 1;
             Viscosity = 1;
@@ -83,7 +83,7 @@ namespace LiquidSim
 
         public void PostInitialise()
         {
-            FieldMaths.Clear(phi);
+            FieldMaths.Clear(pressure);
             EnforceNonDivergenceOfVelocity();
             CalculateVolumeStates();
         }
@@ -137,10 +137,10 @@ namespace LiquidSim
             ApplyVelocityBoundaryCondition();
             FieldMaths.Divergence(u, v, divU);
             ApplyOvervolumeDivergenceCorrection();
-            FieldMaths.SolvePoisson(divU, phi, 20, ApplyBoundaryConditions);
-            FieldMaths.Gradient(phi, gradPhiX, gradPhiY);
-            FieldMaths.MultiplyAdd(gradPhiX, -1, u, 0, 1, 0, 0, XSize + 1, YSize);
-            FieldMaths.MultiplyAdd(gradPhiY, -1, v, 1, 0, 0, 0, XSize, YSize + 1);
+            FieldMaths.SolvePoisson(divU, pressure, 20, ApplyBoundaryConditions);
+            FieldMaths.Gradient(pressure, gradPressureX, gradPressureY);
+            FieldMaths.MultiplyAdd(gradPressureX, -1, u, 0, 1, 0, 0, XSize + 1, YSize);
+            FieldMaths.MultiplyAdd(gradPressureY, -1, v, 1, 0, 0, 0, XSize, YSize + 1);
             ApplyVelocityBoundaryCondition();
 
             void ApplyVelocityBoundaryCondition()
@@ -663,7 +663,7 @@ namespace LiquidSim
             float volumeW = (s & VolumeState.XAll) != VolumeState.XAll ? clippedVolume : 1;
             float volumeH = (s & VolumeState.YAll) != VolumeState.YAll ? clippedVolume : 1;
 
-            return new CellState(unclippedVolume, volumeX, volumeY, volumeW, volumeH, (u[x, y] + u[x + 1, y]) / 2, (v[x, y] + v[x, y + 1]) / 2);
+            return new CellState(unclippedVolume, volumeX, volumeY, volumeW, volumeH, (u[x, y] + u[x + 1, y]) / 2, (v[x, y] + v[x, y + 1]) / 2, pressure[x + 1, y + 1]);
         }
     }
 }

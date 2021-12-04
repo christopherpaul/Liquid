@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -27,6 +24,8 @@ namespace LiquidViz
         private float negativeDivError;
         private float timeStep;
         private float tickProcessingDuration;
+        private (float, float)? cursorPosition;
+        private float? cursorPressure;
 
         public GridVizViewModel()
         {
@@ -212,6 +211,30 @@ namespace LiquidViz
             }
         }
 
+        public (float, float)? CursorPosition
+        {
+            get => cursorPosition;
+            set
+            {
+                (float, float)? coercedValue = null;
+                if (value.HasValue)
+                {
+                    (float x, float y) = value.Value;
+                    x /= scale;
+                    y /= scale;
+                    if (x >= 0 && y >= 0 && x < grid.XSize && y < grid.YSize)
+                    {
+                        coercedValue = (x, y);
+                    }
+                }
+
+                if (SetProperty(ref cursorPosition, coercedValue))
+                {
+                    UpdateCursorValues();
+                }
+            }
+        }
+
         public ICommand ResetCommand { get; }
         public ICommand StepCommand { get; }
         public ICommand StartCommand { get; }
@@ -241,6 +264,12 @@ namespace LiquidViz
             private set => SetProperty(ref tickProcessingDuration, value);
         }
 
+        public float? CursorPressure
+        {
+            get => cursorPressure;
+            private set => SetProperty(ref cursorPressure, value);
+        }
+
         private void UpdateCells()
         {
             var cells = new List<CellVizViewModel>(grid.XSize * grid.YSize);
@@ -260,6 +289,25 @@ namespace LiquidViz
 
             Cells = cells;
             TotalVolume = grid.GetTotalVolume();
+            UpdateCursorValues();
+        }
+
+        private void UpdateCursorValues()
+        {
+            CursorPressure = GetGridValue((x, y) => grid[x, y].Pressure);
+        }
+
+        private T? GetGridValue<T>(Func<int, int, T> f) where T : struct
+        {
+            var pos = CursorPosition;
+            if (!pos.HasValue)
+            {
+                return null;
+            }
+
+            (float x, float y) = pos.Value;
+
+            return f((int)x, (int)y);
         }
 
         private void ResetGrid()

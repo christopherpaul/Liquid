@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -134,21 +134,48 @@ namespace LiquidSim
         private void EnforceNonDivergenceOfVelocity()
         {
             CalculateVolumeStates();
-            ApplyVelocityBoundaryCondition();
+            ApplyVelocityBoundaryCondition(true);
             FieldMaths.Divergence(u, v, divU);
             ApplyOvervolumeDivergenceCorrection();
             FieldMaths.SolvePoisson(divU, pressure, 20, ApplyBoundaryConditions);
             FieldMaths.Gradient(pressure, gradPressureX, gradPressureY);
             FieldMaths.MultiplyAdd(gradPressureX, -1, u, 0, 1, 0, 0, XSize + 1, YSize);
             FieldMaths.MultiplyAdd(gradPressureY, -1, v, 1, 0, 0, 0, XSize, YSize + 1);
-            ApplyVelocityBoundaryCondition();
+            ApplyVelocityBoundaryCondition(false);
 
-            void ApplyVelocityBoundaryCondition()
+            void ApplyVelocityBoundaryCondition(bool zeroBoundaries)
             {
                 for (int x = 0; x < XSize; x++)
                 {
-                    v[x, 0] = 0;
-                    v[x, YSize] = 0;
+                    if (zeroBoundaries)
+                    {
+                        v[x, 0] = 0;
+                        v[x, YSize] = 0;
+                    }
+                    else
+                    {
+                        HalfVolumeState topState = GetYVolumeState(volumeState[x, 0]);
+                        if ((topState & HalfVolumeState.NegativeEnd) == 0)
+                        {
+                            // No liquid
+                            v[x, 0] = 0;
+                        }
+                        else
+                        {
+                            // Prevent outflow across boundary, allow inflow to avoid boundary "pulling" on liquid
+                            v[x, 0] = Math.Max(v[x, 0], 0);
+                        }
+
+                        HalfVolumeState bottomState = GetYVolumeState(volumeState[x, YSize - 1]);
+                        if ((bottomState & HalfVolumeState.PositiveEnd) == 0)
+                        {
+                            v[x, YSize] = 0;
+                        }
+                        else
+                        {
+                            v[x, YSize] = Math.Min(v[x, YSize], 0);
+                        }
+                    }
 
                     for (int y = 1; y < YSize; y++)
                     {
@@ -180,8 +207,35 @@ namespace LiquidSim
 
                 for (int y = 0; y < YSize; y++)
                 {
-                    u[0, y] = 0;
-                    u[XSize, y] = 0;
+                    if (zeroBoundaries)
+                    {
+                        u[0, y] = 0;
+                        u[XSize, y] = 0;
+                    }
+                    else
+                    {
+                        HalfVolumeState leftState = GetXVolumeState(volumeState[0, y]);
+                        if ((leftState & HalfVolumeState.NegativeEnd) == 0)
+                        {
+                            // No liquid
+                            u[0, y] = 0;
+                        }
+                        else
+                        {
+                            // Prevent outflow across boundary, allow inflow to avoid boundary "pulling" on liquid
+                            u[0, y] = Math.Max(u[0, y], 0);
+                        }
+
+                        HalfVolumeState rightState = GetYVolumeState(volumeState[XSize - 1, y]);
+                        if ((rightState & HalfVolumeState.PositiveEnd) == 0)
+                        {
+                            u[XSize, y] = 0;
+                        }
+                        else
+                        {
+                            u[XSize, y] = Math.Min(u[XSize, y], 0);
+                        }
+                    }
 
                     for (int x = 1; x < XSize; x++)
                     {
@@ -212,23 +266,23 @@ namespace LiquidSim
                 }
             }
 
-            void ApplyBoundaryConditions(float[,] phi)
+            void ApplyBoundaryConditions(float[,] p)
             {
-                // Force (n·∇)φ = 0 at outer boundary of grid (n = normal) to ensure
-                // initial n·u = 0 (no flow across boundary) is preserved
+                // Force (n·∇)P >= 0 at outer boundary of grid (n = normal) to ensure
+                // no flow across boundary
                 for (int x = 1; x < XSize + 1; x++)
                 {
-                    phi[x, 0] = phi[x, 1];
-                    phi[x, YSize + 1] = phi[x, YSize];
+                    p[x, 0] = p[x, 1];
+                    p[x, YSize + 1] = p[x, YSize];
                 }
 
                 for (int y = 0; y < YSize + 2; y++)
                 {
-                    phi[0, y] = phi[1, y];
-                    phi[XSize + 1, y] = phi[XSize, y];
+                    p[0, y] = p[1, y];
+                    p[XSize + 1, y] = p[XSize, y];
                 }
 
-                // Set φ = 0 at any free surfaces. φ corresponds to pressure, so this is
+                // Set P = 0 at any free surfaces. P corresponds to pressure, so this is
                 // only correct if we assume all free surfaces are connected (or if there is
                 // only vacuum and not gas where liquid isn't, I suppose). [Future enhancement:
                 // track connected volumes of air and determine a time-varying pressure for
@@ -239,7 +293,7 @@ namespace LiquidSim
                     {
                         if (volumeState[x - 1, y - 1] != VolumeState.All)
                         {
-                            phi[x, y] = 0;
+                            p[x, y] = 0;
                         }
                     }
                 }

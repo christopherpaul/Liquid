@@ -137,7 +137,7 @@ namespace LiquidSim
             ApplyVelocityBoundaryCondition(true);
             FieldMaths.Divergence(u, v, divU);
             ApplyOvervolumeDivergenceCorrection();
-            FieldMaths.SolvePoisson(divU, pressure, 20, ApplyBoundaryConditions);
+            FieldMaths.SolvePoisson(divU, pressure, 20, ApplyPressureBoundaryConditions);
             FieldMaths.Gradient(pressure, gradPressureX, gradPressureY);
             FieldMaths.MultiplyAdd(gradPressureX, -1, u, 0, 1, 0, 0, XSize + 1, YSize);
             FieldMaths.MultiplyAdd(gradPressureY, -1, v, 1, 0, 0, 0, XSize, YSize + 1);
@@ -266,20 +266,20 @@ namespace LiquidSim
                 }
             }
 
-            void ApplyBoundaryConditions(float[,] p)
+            void ApplyPressureBoundaryConditions(float[,] p)
             {
                 // Force (n·∇)P >= 0 at outer boundary of grid (n = normal) to ensure
-                // no flow across boundary
+                // no flow across boundary, and P >= 0 to avoid sucking liquid to the wall
                 for (int x = 1; x < XSize + 1; x++)
                 {
-                    p[x, 0] = p[x, 1];
-                    p[x, YSize + 1] = p[x, YSize];
+                    p[x, 0] = Math.Max(0, p[x, 1]);
+                    p[x, YSize + 1] = Math.Max(0, p[x, YSize]);
                 }
 
                 for (int y = 0; y < YSize + 2; y++)
                 {
-                    p[0, y] = p[1, y];
-                    p[XSize + 1, y] = p[XSize, y];
+                    p[0, y] = Math.Max(0, p[1, y]);
+                    p[XSize + 1, y] = Math.Max(p[XSize, y], 0);
                 }
 
                 // Set P = 0 at any free surfaces. P corresponds to pressure, so this is

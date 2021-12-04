@@ -43,7 +43,7 @@ namespace LiquidViz
 
             largeErrorFill = new SolidColorBrush
             {
-                Color = Colors.Red
+                Color = Color.Add(Color.Multiply(Colors.Aqua, 0.5f), Color.Multiply(Colors.Black, 0.5f))
             };
             largeErrorFill.Freeze();
 
@@ -278,7 +278,7 @@ namespace LiquidViz
                 for (int y = 0; y < grid.YSize; y++)
                 {
                     var cellState = grid[x, y];
-                    if (cellState.Volume >= 0)
+                    if (cellState.Volume >= 0.1f)
                     {
                         var fill = cellState.Volume > 1.5f ? largeErrorFill : normalFill;
                         var cellVm = new CellVizViewModel(x, y, cellState, Scale, 40f / grid.XSize, fill);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -30,7 +30,7 @@ namespace LiquidViz
         {
             foreach (var cell in Cells ?? Enumerable.Empty<CellVizViewModel>())
             {
-                dc.DrawRectangle(cell.Fill, null, new Rect(cell.X, cell.Y, cell.Width, cell.Height));
+                dc.DrawRectangle(cell.Fill, null, new Rect(cell.X - 1, cell.Y - 1, cell.Width + 2, cell.Height + 2)); // expand by 1 pixel all round to avoid gaps
             }
         }
     }

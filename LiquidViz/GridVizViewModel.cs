@@ -20,6 +20,7 @@ namespace LiquidViz
         private IEnumerable<CellVizViewModel> cells;
         private readonly Brush normalFill;
         private readonly Brush largeErrorFill;
+        private readonly Brush solidFill;
         private float positiveDivError;
         private float negativeDivError;
         private float timeStep;
@@ -46,6 +47,12 @@ namespace LiquidViz
                 Color = Color.Add(Color.Multiply(Colors.Aqua, 0.5f), Color.Multiply(Colors.Black, 0.5f))
             };
             largeErrorFill.Freeze();
+
+            solidFill = new SolidColorBrush
+            {
+                Color = Colors.Gray
+            };
+            solidFill.Freeze();
 
             UpdateCells();
 
@@ -278,11 +285,19 @@ namespace LiquidViz
                 for (int y = 0; y < grid.YSize; y++)
                 {
                     var cellState = grid[x, y];
-                    if (cellState.Volume >= 0.1f)
+                    if (cellState.IsSolid)
+                    {
+                        cells.Add(new CellVizViewModel(x * Scale, y * Scale, Scale, Scale, solidFill));
+                    }
+                    else if (cellState.Volume >= 0.1f)
                     {
                         var fill = cellState.Volume > 1.5f ? largeErrorFill : normalFill;
-                        var cellVm = new CellVizViewModel(x, y, cellState, Scale, 40f / grid.XSize, fill);
-                        cells.Add(cellVm);
+                        cells.Add(new CellVizViewModel(
+                            cellState.VolumeX * Scale,
+                            cellState.VolumeY * Scale,
+                            cellState.VolumeWidth * Scale,
+                            cellState.VolumeHeight * Scale,
+                            fill));
                     }
                 }
             }
@@ -323,6 +338,13 @@ namespace LiquidViz
                     //grid.SetU(x, y, (float)(rnd.NextDouble() * 10 - 5));
                     //grid.SetV(x, y, (float)(rnd.NextDouble() * 10 - 5));
                 }
+            }
+
+            // let's build a wall
+            for (int y = grid.YSize * 2 / 3; y < grid.YSize; y++)
+            {
+                grid.SetSolid(grid.XSize / 2 - 1, y);
+                grid.SetSolid(grid.XSize / 2, y);
             }
 
             grid.PostInitialise();

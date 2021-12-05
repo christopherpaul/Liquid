@@ -722,7 +722,7 @@ namespace LiquidSim
             float volumeW = ((CellVolumeFlags)s & CellVolumeFlags.XAll) != CellVolumeFlags.XAll ? clippedVolume : 1;
             float volumeH = ((CellVolumeFlags)s & CellVolumeFlags.YAll) != CellVolumeFlags.YAll ? clippedVolume : 1;
 
-            return new CellState(unclippedVolume, volumeX, volumeY, volumeW, volumeH, (u[x, y] + u[x + 1, y]) / 2, (v[x, y] + v[x, y + 1]) / 2, pressure[x + 1, y + 1]);
+            return new CellState(unclippedVolume, volumeX, volumeY, volumeW, volumeH, (u[x, y] + u[x + 1, y]) / 2, (v[x, y] + v[x, y + 1]) / 2, pressure[x + 1, y + 1], solid[x, y]);
         }
     }
 }

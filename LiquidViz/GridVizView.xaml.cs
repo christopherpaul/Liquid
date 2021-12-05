@@ -25,6 +25,8 @@ namespace LiquidViz
             InitializeComponent();
         }
 
+        private GridVizViewModel ViewModel => (GridVizViewModel)DataContext;
+
         private void LiquidViewer_MouseMove(object sender, MouseEventArgs e)
         {
             if (ViewModel == null)
@@ -34,6 +36,8 @@ namespace LiquidViz
 
             Point pos = e.GetPosition(viewer);
             ViewModel.CursorPosition = ((float)pos.X, (float)pos.Y);
+
+            HandleButtonStates(e);
         }
 
         private void LiquidViewer_MouseLeave(object sender, MouseEventArgs e)
@@ -46,6 +50,26 @@ namespace LiquidViz
             ViewModel.CursorPosition = null;
         }
 
-        private GridVizViewModel ViewModel => (GridVizViewModel)DataContext;
+        private void LiquidViewer_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (ViewModel == null)
+            {
+                return;
+            }
+
+            HandleButtonStates(e);
+        }
+
+        private void HandleButtonStates(MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                ViewModel.SetSolid(true);
+            }
+            else if (e.RightButton == MouseButtonState.Pressed)
+            {
+                ViewModel.SetSolid(false);
+            }
+        }
     }
 }

@@ -12,6 +12,7 @@
                             Width="{Binding Width}" Height="{Binding Height}"
                             Cells="{Binding Cells}"
                             MouseMove="LiquidViewer_MouseMove" MouseLeave="LiquidViewer_MouseLeave"
+                            MouseDown="LiquidViewer_MouseDown"
                             />
     </Border>
 </UserControl>

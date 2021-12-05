@@ -27,6 +27,8 @@ namespace LiquidViz
         private float tickProcessingDuration;
         private (float, float)? cursorPosition;
         private float? cursorPressure;
+        private DispatcherOperation pendingUpdate;
+        private Dispatcher dispatcher;
 
         public GridVizViewModel()
         {
@@ -56,8 +58,7 @@ namespace LiquidViz
 
             UpdateCells();
 
-            var dispatcher = Dispatcher.CurrentDispatcher;
-            DispatcherOperation pendingUpdate = null;
+            dispatcher = Dispatcher.CurrentDispatcher;
 
             var tickPeriod = TimeSpan.FromSeconds(0.015);
             object tickSync = new object();
@@ -127,8 +128,7 @@ namespace LiquidViz
 
                 Interlocked.Decrement(ref ticksInProgress);
 
-                pendingUpdate?.Abort();
-                pendingUpdate = dispatcher.BeginInvoke(UpdateCells, DispatcherPriority.Background);
+                ScheduleVizUpdate();
             }
 
             void OnStartStop()
@@ -247,6 +247,20 @@ namespace LiquidViz
         public ICommand StartCommand { get; }
         public ICommand StopCommand { get; }
 
+        public void SetSolid(bool isSolid)
+        {
+            var pos = CursorPosition;
+            if (!pos.HasValue)
+            {
+                return;
+            }
+
+            (float x, float y) = pos.Value;
+            grid.SetSolid((int)x, (int)y, isSolid);
+
+            ScheduleVizUpdate();
+        }
+
         public float TotalVolume
         {
             get => totalVolume;
@@ -275,6 +289,12 @@ namespace LiquidViz
         {
             get => cursorPressure;
             private set => SetProperty(ref cursorPressure, value);
+        }
+
+        private void ScheduleVizUpdate()
+        {
+            pendingUpdate?.Abort();
+            pendingUpdate = dispatcher.BeginInvoke(UpdateCells, DispatcherPriority.Background);
         }
 
         private void UpdateCells()

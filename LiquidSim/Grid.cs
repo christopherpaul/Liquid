@@ -80,6 +80,7 @@ namespace LiquidSim
 
         public CellState this[int x, int y] => GetCellState(x, y);
 
+        public void SetSolid(int x, int y, bool isSolid = true) => solid[x, y] = isSolid;
         public void SetVolume(int x, int y, float vol) => volume[x, y] = vol;
         public void SetU(int x, int y, float value) => u[x, y] = value;
         public void SetV(int x, int y, float value) => v[x, y] = value;
@@ -182,27 +183,52 @@ namespace LiquidSim
 
                     for (int y = 1; y < YSize; y++)
                     {
-                        HalfVolumeState upperState = GetYVolumeState(cellFlags[x, y - 1]);
-                        HalfVolumeState lowerState = GetYVolumeState(cellFlags[x, y]);
-                        if ((upperState & HalfVolumeState.PositiveEnd) == 0 ||
-                            (lowerState & HalfVolumeState.NegativeEnd) == 0)
+                        if ((cellFlags[x, y - 1] & (uint)CellVolumeFlags.HasBottomBoundary) != 0)
                         {
-                            if (upperState == HalfVolumeState.None &&
-                                lowerState == HalfVolumeState.None)
+                            if (zeroBoundaries)
                             {
                                 v[x, y] = 0;
                             }
-                            else if (upperState == HalfVolumeState.None)
+                            else
                             {
-                                v[x, y] = v[x, y + 1] + u[x + 1, y] - u[x, y];
+                                v[x, y] = Math.Min(v[x, y], 0);
                             }
-                            else if (lowerState == HalfVolumeState.None)
+                        }
+                        else if ((cellFlags[x, y] & (uint)CellVolumeFlags.HasTopBoundary) != 0)
+                        {
+                            if (zeroBoundaries)
                             {
-                                v[x, y] = v[x, y - 1] + u[x, y - 1] - u[x + 1, y - 1];
+                                v[x, y] = 0;
                             }
                             else
                             {
-                                v[x, y] = (v[x, y + 1] + u[x + 1, y] - u[x, y] + v[x, y - 1] + u[x, y - 1] - u[x + 1, y - 1]) / 2;
+                                v[x, y] = Math.Max(v[x, y], 0);
+                            }
+                        }
+                        else
+                        {
+                            HalfVolumeState upperState = GetYVolumeState(cellFlags[x, y - 1]);
+                            HalfVolumeState lowerState = GetYVolumeState(cellFlags[x, y]);
+                            if ((upperState & HalfVolumeState.PositiveEnd) == 0 ||
+                                (lowerState & HalfVolumeState.NegativeEnd) == 0)
+                            {
+                                if (upperState == HalfVolumeState.None &&
+                                    lowerState == HalfVolumeState.None)
+                                {
+                                    v[x, y] = 0;
+                                }
+                                else if (upperState == HalfVolumeState.None)
+                                {
+                                    v[x, y] = v[x, y + 1] + u[x + 1, y] - u[x, y];
+                                }
+                                else if (lowerState == HalfVolumeState.None)
+                                {
+                                    v[x, y] = v[x, y - 1] + u[x, y - 1] - u[x + 1, y - 1];
+                                }
+                                else
+                                {
+                                    v[x, y] = (v[x, y + 1] + u[x + 1, y] - u[x, y] + v[x, y - 1] + u[x, y - 1] - u[x + 1, y - 1]) / 2;
+                                }
                             }
                         }
                     }
@@ -242,27 +268,52 @@ namespace LiquidSim
 
                     for (int x = 1; x < XSize; x++)
                     {
-                        HalfVolumeState leftState = GetXVolumeState(cellFlags[x - 1, y]);
-                        HalfVolumeState rightState = GetXVolumeState(cellFlags[x, y]);
-                        if ((leftState & HalfVolumeState.PositiveEnd) == 0 ||
-                            (rightState & HalfVolumeState.NegativeEnd) == 0)
+                        if ((cellFlags[x - 1, y] & (uint)CellVolumeFlags.HasRightBoundary) != 0)
                         {
-                            if (leftState == HalfVolumeState.None &&
-                                rightState == HalfVolumeState.None)
+                            if (zeroBoundaries)
                             {
                                 u[x, y] = 0;
                             }
-                            else if (leftState == HalfVolumeState.None)
+                            else
                             {
-                                u[x, y] = u[x + 1, y] + v[x, y + 1] - v[x, y];
+                                u[x, y] = Math.Min(u[x, y], 0);
                             }
-                            else if (rightState == HalfVolumeState.None)
+                        }
+                        else if ((cellFlags[x, y] & (uint)CellVolumeFlags.HasLeftBoundary) != 0)
+                        {
+                            if (zeroBoundaries)
                             {
-                                u[x, y] = u[x - 1, y] + v[x - 1, y] - v[x - 1, y + 1];
+                                u[x, y] = 0;
                             }
                             else
                             {
-                                u[x, y] = (u[x + 1, y] + v[x, y + 1] - v[x, y] + u[x - 1, y] + v[x - 1, y] - v[x - 1, y + 1]) / 2;
+                                u[x, y] = Math.Max(u[x, y], 0);
+                            }
+                        }
+                        else
+                        {
+                            HalfVolumeState leftState = GetXVolumeState(cellFlags[x - 1, y]);
+                            HalfVolumeState rightState = GetXVolumeState(cellFlags[x, y]);
+                            if ((leftState & HalfVolumeState.PositiveEnd) == 0 ||
+                                (rightState & HalfVolumeState.NegativeEnd) == 0)
+                            {
+                                if (leftState == HalfVolumeState.None &&
+                                    rightState == HalfVolumeState.None)
+                                {
+                                    u[x, y] = 0;
+                                }
+                                else if (leftState == HalfVolumeState.None)
+                                {
+                                    u[x, y] = u[x + 1, y] + v[x, y + 1] - v[x, y];
+                                }
+                                else if (rightState == HalfVolumeState.None)
+                                {
+                                    u[x, y] = u[x - 1, y] + v[x - 1, y] - v[x - 1, y + 1];
+                                }
+                                else
+                                {
+                                    u[x, y] = (u[x + 1, y] + v[x, y + 1] - v[x, y] + u[x - 1, y] + v[x - 1, y] - v[x - 1, y + 1]) / 2;
+                                }
                             }
                         }
                     }
@@ -646,32 +697,32 @@ namespace LiquidSim
                     CellVolumeFlags f = (CellVolumeFlags)cellFlags[x, y];
                     if (f == CellVolumeFlags.All)
                     {
-                        if (x == 0 || solid[x - 1, y])
-                        {
-                            f |= CellVolumeFlags.HasLeftBoundary;
-                        }
-                        if (x == XSize - 1 || solid[x + 1, y])
-                        {
-                            f |= CellVolumeFlags.HasRightBoundary;
-                        }
-                        if (y == 0 || solid[x, y - 1])
-                        {
-                            f |= CellVolumeFlags.HasTopBoundary;
-                        }
-                        if (y == YSize - 1 || solid[x, y + 1])
-                        {
-                            f |= CellVolumeFlags.HasBottomBoundary;
-                        }
                         f |= CellVolumeFlags.IsInDomain;
-                        cellFlags[x, y] = (uint)f;
                     }
+                    if (x == 0 || solid[x - 1, y])
+                    {
+                        f |= CellVolumeFlags.HasLeftBoundary;
+                    }
+                    if (x == XSize - 1 || solid[x + 1, y])
+                    {
+                        f |= CellVolumeFlags.HasRightBoundary;
+                    }
+                    if (y == 0 || solid[x, y - 1])
+                    {
+                        f |= CellVolumeFlags.HasTopBoundary;
+                    }
+                    if (y == YSize - 1 || solid[x, y + 1])
+                    {
+                        f |= CellVolumeFlags.HasBottomBoundary;
+                    }
+                    cellFlags[x, y] = (uint)f;
                 }
             }
         }
 
         private CellVolumeFlags GetVolumeFlags(int x, int y)
         {
-            if (x < 0 || y < 0 || x >= XSize || y >= YSize)
+            if (x < 0 || y < 0 || x >= XSize || y >= YSize || solid[x, y])
             {
                 return CellVolumeFlags.None;
             }

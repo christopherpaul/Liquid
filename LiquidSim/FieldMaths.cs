@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,6 +6,16 @@ using System.Threading.Tasks;
 
 namespace LiquidSim
 {
+    [Flags]
+    internal enum CellDomainFlags
+    {
+        IsInDomain = 1,
+        HasLeftBoundary = 2,
+        HasRightBoundary = 4,
+        HasTopBoundary = 8,
+        HasBottomBoundary = 16
+    }
+
     internal static class FieldMaths
     {
         /// <summary>
@@ -74,23 +84,26 @@ namespace LiquidSim
         /// <summary>
         /// Solves ∇²φ = f
         /// </summary>
-        /// <param name="f"></param>
-        /// <param name="φ"></param>
-        /// <param name="iterations"></param>
-        public static void SolvePoisson(float[,] f, float[,] φ, int iterations, Action<float[,]> applyBoundaryConditions)
+        /// <remarks>
+        /// Solves where IsInDomain flag is set. Boundary conditions are φ = 0 (free surface) unless the HasXBoundary flag is set, in which
+        /// case they are (n.∇)φ <= 0 (no outflow across boundary) with additionally φ = 0 in not-equal (inflow) case, i.e. when a solid boundary
+        /// is turning into a free surface.
+        /// Making φ take different values at the free surface would be straightforward - set φ before calling and remove call to ClearNonDomain.
+        /// </remarks>
+        public static void SolvePressurePoisson(float[,] f, float[,] φ, uint[,] cellDomainFlags, int iterations)
         {
             CheckConsistentDimensions(f, φ, 2, 2);
+            CheckConsistentDimensions(cellDomainFlags, φ, 2, 2);
 
-            //Clear(φ);
+            ClearNonDomain(φ, cellDomainFlags);
 
             for (int i = 0; i < iterations; i++)
             {
-                PoissonStep(f, φ);
-                applyBoundaryConditions?.Invoke(φ);
+                PoissonGSStep(f, φ, cellDomainFlags);
             }
         }
 
-        private static void PoissonStep(float[,] f, float[,] φ)
+        private static void ClearNonDomain(float[,] φ, uint[,] cellDomainFlags)
         {
             int xSize = φ.GetLength(0);
             int ySize = φ.GetLength(1);
@@ -99,7 +112,47 @@ namespace LiquidSim
             {
                 for (int y = 1; y < ySize - 1; y++)
                 {
-                    φ[x, y] = (-f[x - 1, y - 1] + φ[x, y - 1] + φ[x, y + 1] + φ[x - 1, y] + φ[x + 1, y]) / 4;
+                    uint flags = cellDomainFlags[x - 1, y - 1];
+                    if ((flags & (uint)CellDomainFlags.IsInDomain) == 0)
+                    {
+                        φ[x, y] = 0;
+                    }
+                }
+            }
+
+            for (int x = 0; x < xSize; x++)
+            {
+                φ[x, 0] = 0;
+                φ[x, ySize - 1] = 0;
+            }
+
+            for (int y = 0; y < ySize; y++)
+            {
+                φ[0, y] = 0;
+                φ[xSize - 1, y] = 0;
+            }
+        }
+
+        private static void PoissonGSStep(float[,] f, float[,] φ, uint[,] cellDomainFlags)
+        {
+            int xSize = φ.GetLength(0);
+            int ySize = φ.GetLength(1);
+
+            for (int x = 1; x < xSize - 1; x++)
+            {
+                for (int y = 1; y < ySize - 1; y++)
+                {
+                    uint flags = cellDomainFlags[x - 1, y - 1];
+                    if ((flags & (uint)CellDomainFlags.IsInDomain) != 0)
+                    {
+                        float φgt0 = Math.Max(0, φ[x, y]);
+                        float a = -f[x - 1, y - 1];
+                        a += ((flags & (uint)CellDomainFlags.HasLeftBoundary) == 0) ? φ[x - 1, y] : φgt0;
+                        a += ((flags & (uint)CellDomainFlags.HasRightBoundary) == 0) ? φ[x + 1, y] : φgt0;
+                        a += ((flags & (uint)CellDomainFlags.HasTopBoundary) == 0) ? φ[x, y - 1] : φgt0;
+                        a += ((flags & (uint)CellDomainFlags.HasBottomBoundary) == 0) ? φ[x, y + 1] : φgt0;
+                        φ[x, y] = a / 4;
+                    }
                 }
             }
         }

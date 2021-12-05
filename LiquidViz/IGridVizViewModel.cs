@@ -15,6 +15,7 @@ namespace LiquidViz
         ICommand StepCommand { get; }
         ICommand StartCommand { get; }
         ICommand StopCommand { get; }
+        ICommand ClearWallsCommand { get; }
 
         float ExternalForceX { get; set; }
         float ExternalForceY { get; set; }

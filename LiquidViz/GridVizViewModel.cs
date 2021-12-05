@@ -84,6 +84,15 @@ namespace LiquidViz
                 UpdateCells();
             });
 
+            ClearWallsCommand = new RelayCommand(() =>
+            {
+                lock (tickSync)
+                {
+                    ClearWalls();
+                }
+                UpdateCells();
+            });
+
             StepCommand = new RelayCommand(() =>
             {
                 Stop();
@@ -254,6 +263,7 @@ namespace LiquidViz
         public ICommand StepCommand { get; }
         public ICommand StartCommand { get; }
         public ICommand StopCommand { get; }
+        public ICommand ClearWallsCommand { get; }
 
         public void SetSolid(bool isSolid)
         {
@@ -376,6 +386,17 @@ namespace LiquidViz
             //}
 
             grid.PostInitialise();
+        }
+
+        private void ClearWalls()
+        {
+            for (int x = 0; x < grid.XSize; x++)
+            {
+                for (int y = 0; y < grid.YSize; y++)
+                {
+                    grid.SetSolid(x, y, false);
+                }
+            }
         }
     }
 }

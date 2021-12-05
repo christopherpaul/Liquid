@@ -29,6 +29,7 @@
             <Button Command="{Binding GridViz.StepCommand}">Step</Button>
             <Button Command="{Binding GridViz.StartCommand}">Start</Button>
             <Button Command="{Binding GridViz.StopCommand}">Stop</Button>
+            <Button Command="{Binding GridViz.ClearWallsCommand}">Clear walls</Button>
 
             <StackPanel>
                 <Label>Ext force X</Label>
@@ -59,7 +60,7 @@
             </StackPanel>
 
             <StackPanel>
-                <Label>Overvolume correction factor</Label>
+                <Label>Overvolume c.f.</Label>
                 <Slider Value="{Binding GridViz.OvervolumeCorrection}" Minimum="0" Maximum="1"
                         Width="100" />
                 <TextBox Text="{Binding GridViz.OvervolumeCorrection, Mode=OneWay}" />

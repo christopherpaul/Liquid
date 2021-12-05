@@ -46,6 +46,18 @@ namespace LiquidSim
         private readonly float[,] gradPressureX;
         private readonly float[,] gradPressureY;
 
+        /// <summary>
+        /// Each cell containing air belongs to an air volume; each air volume
+        /// has a total mass.
+        /// </summary>
+        private int[,] airVolume;
+        private int[,] tempAirVolume;
+        private List<float> airVolumeMasses;
+        private List<float> tempAirVolumeMasses;
+        private List<int> airVolumeCellCounts;
+        private List<int> tempAirVolumeCellCounts;
+        private HashSet<(int, int)> tempAirVolumeMap;
+
         public Grid(int xSize, int ySize)
         {
             XSize = xSize;
@@ -54,6 +66,13 @@ namespace LiquidSim
             solid = new bool[xSize, ySize];
             volume = new float[xSize, ySize];
             tempVolume = new float[xSize, ySize];
+            airVolume = new int[xSize, ySize];
+            tempAirVolume = new int[xSize, ySize];
+            airVolumeMasses = new List<float>();
+            airVolumeCellCounts = new List<int>();
+            tempAirVolumeMasses = new List<float>();
+            tempAirVolumeCellCounts = new List<int>();
+            tempAirVolumeMap = new HashSet<(int, int)>();
             cellFlags = new uint[xSize, ySize];
             u = new float[xSize + 1, ySize];
             tempU = new float[xSize + 1, ySize];
@@ -66,12 +85,15 @@ namespace LiquidSim
 
             Density = 1;
             Viscosity = 1;
+            InitialAirPressure = 1;
         }
 
         public float Density { get; set; }
         public float Viscosity { get; set; }
         public float ExternalForceX { get; set; }
         public float ExternalForceY { get; set; }
+
+        public float InitialAirPressure { get; set; }
 
         public int XSize { get; }
         public int YSize { get; }
@@ -88,6 +110,8 @@ namespace LiquidSim
         public void PostInitialise()
         {
             FieldMaths.Clear(pressure);
+            CalculateCellFlags();
+            CalculateInitialAirMasses();
             EnforceNonDivergenceOfVelocity();
             CalculateCellFlags();
         }
@@ -138,14 +162,31 @@ namespace LiquidSim
         private void EnforceNonDivergenceOfVelocity()
         {
             CalculateCellFlags();
+            UpdateAirVolumes();
             ApplyVelocityBoundaryCondition(true);
             FieldMaths.Divergence(u, v, divU);
             ApplyOvervolumeDivergenceCorrection();
+            SetAirPressures();
             FieldMaths.SolvePressurePoisson(divU, pressure, cellFlags, 20);
             FieldMaths.Gradient(pressure, gradPressureX, gradPressureY);
             FieldMaths.MultiplyAdd(gradPressureX, -1, u, 0, 1, 0, 0, XSize + 1, YSize);
             FieldMaths.MultiplyAdd(gradPressureY, -1, v, 1, 0, 0, 0, XSize, YSize + 1);
             ApplyVelocityBoundaryCondition(false);
+
+            void SetAirPressures()
+            {
+                for (int x = 0; x < XSize; x++)
+                {
+                    for (int y = 0; y < YSize; y++)
+                    {
+                        int vol = airVolume[x, y];
+                        if (vol >= 0)
+                        {
+                            pressure[x + 1, y + 1] = airVolumeMasses[vol] / airVolumeCellCounts[vol]; //TODO precompute per volume
+                        }
+                    }
+                }
+            }
 
             void ApplyVelocityBoundaryCondition(bool zeroBoundaries)
             {
@@ -655,13 +696,15 @@ namespace LiquidSim
             HasTopBoundary = CellDomainFlags.HasTopBoundary,
             HasBottomBoundary = CellDomainFlags.HasBottomBoundary,
 
-            XShift = 5,
+            HasAir = 32,
+
+            XShift = 6,
             XNone = HalfVolumeState.None << XShift,
             XPositiveEnd = HalfVolumeState.PositiveEnd << XShift,
             XNegativeEnd = HalfVolumeState.NegativeEnd << XShift,
             XAll = HalfVolumeState.All << XShift,
 
-            YShift = 9,
+            YShift = 10,
             YNone = HalfVolumeState.None << YShift,
             YPositiveEnd = HalfVolumeState.PositiveEnd << YShift,
             YNegativeEnd = HalfVolumeState.NegativeEnd << YShift,
@@ -730,7 +773,7 @@ namespace LiquidSim
             float vol = volume[x, y];
             if (vol <= 0f)
             {
-                return CellVolumeFlags.None;
+                return CellVolumeFlags.None | CellVolumeFlags.HasAir;
             }
             if (vol >= 1f)
             {
@@ -760,7 +803,7 @@ namespace LiquidSim
             {
                 best = CellVolumeFlags.Bottom;
             }
-            return best;
+            return best | CellVolumeFlags.HasAir;
         }
 
         private CellState GetCellState(int x, int y)
@@ -774,6 +817,158 @@ namespace LiquidSim
             float volumeH = ((CellVolumeFlags)s & CellVolumeFlags.YAll) != CellVolumeFlags.YAll ? clippedVolume : 1;
 
             return new CellState(unclippedVolume, volumeX, volumeY, volumeW, volumeH, (u[x, y] + u[x + 1, y]) / 2, (v[x, y] + v[x, y + 1]) / 2, pressure[x + 1, y + 1], solid[x, y]);
+        }
+
+        private void CalculateInitialAirMasses()
+        {
+            DiscoverAirVolumes();
+            SwapAirVariables();
+
+            airVolumeMasses.Clear();
+            foreach (int cellCount in airVolumeCellCounts)
+            {
+                airVolumeMasses.Add(InitialAirPressure * cellCount);
+            }
+        }
+
+        private void UpdateAirVolumes()
+        {
+            DiscoverAirVolumes();
+
+            tempAirVolumeMap.Clear();
+            for (int x = 0; x < XSize; x++)
+            {
+                for (int y = 0; y < YSize; y++)
+                {
+                    int newVol = tempAirVolume[x, y];
+                    if (newVol >= 0)
+                    {
+                        int oldVol = airVolume[x, y];
+                        if (oldVol >= 0)
+                        {
+                            tempAirVolumeMap.Add((oldVol, newVol));
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < airVolumeCellCounts.Count; i++)
+            {
+                airVolumeCellCounts[i] = 0;
+            }
+
+            foreach (var (oldVol, newVol) in tempAirVolumeMap)
+            {
+                airVolumeCellCounts[oldVol] += tempAirVolumeCellCounts[newVol];
+            }
+
+            tempAirVolumeMasses.Clear();
+            for (int i = 0; i < tempAirVolumeCellCounts.Count; i++)
+            {
+                tempAirVolumeMasses.Add(0);
+            }
+
+            foreach (var (oldVol, newVol) in tempAirVolumeMap)
+            {
+                tempAirVolumeMasses[newVol] += airVolumeMasses[oldVol] * tempAirVolumeCellCounts[newVol] / airVolumeCellCounts[oldVol];
+            }
+
+            SwapAirVariables();
+        }
+
+        private void SwapAirVariables()
+        {
+            (airVolume, tempAirVolume) = (tempAirVolume, airVolume);
+            (airVolumeCellCounts, tempAirVolumeCellCounts) = (tempAirVolumeCellCounts, airVolumeCellCounts);
+            (airVolumeMasses, tempAirVolumeMasses) = (tempAirVolumeMasses, airVolumeMasses);
+        }
+
+        private void DiscoverAirVolumes()
+        {
+            tempAirVolumeCellCounts.Clear();
+            tempAirVolumeMasses.Clear();
+            FieldMaths.Clear(tempAirVolume, -1);
+
+            for (int x = 0; x < XSize; x++)
+            {
+                for (int y = 0; y < YSize; y++)
+                {
+                    if (HasAir(cellFlags[x, y]))
+                    {
+                        int left = -1, leftCount = 0;
+                        if (x > 0 && (left = tempAirVolume[x - 1, y]) >= 0)
+                        {
+                            leftCount = tempAirVolumeCellCounts[left];
+                            while (leftCount <= 0)
+                            {
+                                left = -leftCount;
+                                leftCount = tempAirVolumeCellCounts[left];
+                            }
+                        }
+
+                        int up = -1, upCount = 0;
+                        if (y > 0 && (up = tempAirVolume[x, y - 1]) >= 0)
+                        {
+                            upCount = tempAirVolumeCellCounts[up];
+                            while (upCount <= 0)
+                            {
+                                up = -upCount;
+                                upCount = tempAirVolumeCellCounts[up];
+                            }
+                        }
+
+                        if (left >= 0 && up >= 0 && left != up)
+                        {
+                            // Merge
+                            tempAirVolumeCellCounts[left] = leftCount + upCount + 1;
+                            tempAirVolumeCellCounts[up] = -left;
+                            tempAirVolume[x, y] = left;
+                        }
+                        else if (left >= 0)
+                        {
+                            tempAirVolumeCellCounts[left] = leftCount + 1;
+                            tempAirVolume[x, y] = left;
+                        }
+                        else if (up >= 0)
+                        {
+                            tempAirVolumeCellCounts[up] = upCount + 1;
+                            tempAirVolume[x, y] = up;
+                        }
+                        else
+                        {
+                            int newVol = tempAirVolumeCellCounts.Count;
+                            tempAirVolumeCellCounts.Add(1);
+                            tempAirVolume[x, y] = newVol;
+                        }
+                    }
+                }
+            }
+
+            for (int x = 0; x < XSize; x++)
+            {
+                for (int y = 0; y < YSize; y++)
+                {
+                    int vol = tempAirVolume[x, y];
+                    if (vol >= 0)
+                    {
+                        int volCount = tempAirVolumeCellCounts[vol];
+                        while (volCount <= 0)
+                        {
+                            vol = -volCount;
+                            volCount = tempAirVolumeCellCounts[vol];
+                        }
+
+                        tempAirVolume[x, y] = vol;
+                    }
+                }
+            }
+
+            for (int i = 0; i < tempAirVolumeCellCounts.Count; i++)
+            {
+                tempAirVolumeCellCounts[i] = Math.Max(0, tempAirVolumeCellCounts[i]);
+            }
+
+            bool HasAir(uint f) => (((CellVolumeFlags)f) & CellVolumeFlags.HasAir) != 0;
         }
     }
 }

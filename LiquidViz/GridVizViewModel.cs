@@ -18,7 +18,8 @@ namespace LiquidViz
         private float scale = 6;
         private float totalVolume;
         private IEnumerable<CellVizViewModel> cells;
-        private readonly Brush normalFill;
+        private readonly Brush partialFill;
+        private readonly Brush totalFill;
         private readonly Brush largeErrorFill;
         private readonly Brush solidFill;
         private float positiveDivError;
@@ -34,15 +35,22 @@ namespace LiquidViz
         {
             grid = new Grid(80, 80);
             grid.ExternalForceY = 1;
+            grid.InitialAirPressure = 10;
             ResetGrid();
 
             timeStep = 0.01f;
 
-            normalFill = new SolidColorBrush
+            partialFill = new SolidColorBrush
+            {
+                Color = Colors.Aquamarine
+            };
+            partialFill.Freeze();
+
+            totalFill = new SolidColorBrush
             {
                 Color = Colors.Aqua
             };
-            normalFill.Freeze();
+            totalFill.Freeze();
 
             largeErrorFill = new SolidColorBrush
             {
@@ -311,7 +319,7 @@ namespace LiquidViz
                     }
                     else if (cellState.Volume >= 0.1f)
                     {
-                        var fill = cellState.Volume > 1.5f ? largeErrorFill : normalFill;
+                        var fill = cellState.Volume < 1f ? partialFill : cellState.Volume > 1.5f ? largeErrorFill : totalFill;
                         cells.Add(new CellVizViewModel(
                             cellState.VolumeX * Scale,
                             cellState.VolumeY * Scale,

@@ -95,15 +95,13 @@ namespace LiquidSim
             CheckConsistentDimensions(f, φ, 2, 2);
             CheckConsistentDimensions(cellDomainFlags, φ, 2, 2);
 
-            ClearNonDomain(φ, cellDomainFlags);
-
             for (int i = 0; i < iterations; i++)
             {
                 PoissonGSStep(f, φ, cellDomainFlags);
             }
         }
 
-        private static void ClearNonDomain(float[,] φ, uint[,] cellDomainFlags)
+        public static void ClearNonDomain(float[,] φ, uint[,] cellDomainFlags)
         {
             int xSize = φ.GetLength(0);
             int ySize = φ.GetLength(1);
@@ -173,7 +171,7 @@ namespace LiquidSim
             }
         }
 
-        public static void Clear(float[,] q, float value = 0)
+        public static void Clear<T>(T[,] q, T value = default)
         {
             int xSize = q.GetLength(0);
             int ySize = q.GetLength(1);

@@ -369,11 +369,11 @@ namespace LiquidViz
             }
 
             // let's build a wall
-            for (int y = grid.YSize * 1 / 3; y < grid.YSize * 7 / 8; y++)
-            {
-                grid.SetSolid(grid.XSize * 3 / 8 - 1, y);
-                grid.SetSolid(grid.XSize * 3 / 8, y);
-            }
+            //for (int y = grid.YSize * 1 / 3; y < grid.YSize * 7 / 8; y++)
+            //{
+            //    grid.SetSolid(grid.XSize * 3 / 8 - 1, y);
+            //    grid.SetSolid(grid.XSize * 3 / 8, y);
+            //}
 
             grid.PostInitialise();
         }

@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:LiquidViz" 
         d:DataContext="{d:DesignInstance Type=local:MainViewModel}"
         mc:Ignorable="d"
-        Title="MainWindow" Height="650" Width="800">
+        Title="MainWindow" Height="700" Width="1000">
     <Window.Resources>
         <Style TargetType="{x:Type Button}">
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -35,14 +35,14 @@
                 <Label>Ext force X</Label>
                 <Slider Value="{Binding GridViz.ExternalForceX}" Minimum="-2" Maximum="2" 
                         Width="100" />
-                <TextBox Text="{Binding GridViz.ExternalForceX, Mode=OneWay}" />
+                <TextBox Text="{Binding GridViz.ExternalForceX}" />
             </StackPanel>
 
             <StackPanel>
                 <Label>Ext force Y</Label>
                 <Slider Value="{Binding GridViz.ExternalForceY}" Minimum="-2" Maximum="2"
                         Width="100" />
-                <TextBox Text="{Binding GridViz.ExternalForceY, Mode=OneWay}" />
+                <TextBox Text="{Binding GridViz.ExternalForceY}" />
             </StackPanel>
 
             <StackPanel>
@@ -63,7 +63,14 @@
                 <Label>Overvolume c.f.</Label>
                 <Slider Value="{Binding GridViz.OvervolumeCorrection}" Minimum="0" Maximum="1"
                         Width="100" />
-                <TextBox Text="{Binding GridViz.OvervolumeCorrection, Mode=OneWay}" />
+                <TextBox Text="{Binding GridViz.OvervolumeCorrection}" />
+            </StackPanel>
+
+            <StackPanel>
+                <Label>Air pressure @reset</Label>
+                <Slider Value="{Binding GridViz.PressureAtReset}" Minimum="0" Maximum="25"
+                        Width="100" />
+                <TextBox Text="{Binding GridViz.PressureAtReset}" />
             </StackPanel>
         </WrapPanel>
         
@@ -87,7 +94,7 @@
             </Grid.RowDefinitions>
 
             <Label Grid.Row="0">Pressure</Label>
-            <TextBox Grid.Row="0" Text="{Binding GridViz.CursorPressure, Mode=OneWay}" />
+            <TextBox Grid.Row="0" Text="{Binding GridViz.CursorPressure, Mode=OneWay, StringFormat=F2}" />
         </Grid>
 
         <WrapPanel Grid.Row="2" Grid.ColumnSpan="2">

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -22,6 +23,7 @@ namespace LiquidViz
         private readonly Brush totalFill;
         private readonly Brush largeErrorFill;
         private readonly Brush solidFill;
+        private readonly Brush[] airPressureFills;
         private float positiveDivError;
         private float negativeDivError;
         private float timeStep;
@@ -30,12 +32,13 @@ namespace LiquidViz
         private float? cursorPressure;
         private DispatcherOperation pendingUpdate;
         private Dispatcher dispatcher;
+        private float pressureAtReset;
 
         public GridVizViewModel()
         {
             grid = new Grid(80, 80);
             grid.ExternalForceY = 1;
-            grid.InitialAirPressure = 10;
+            pressureAtReset = 0;
             ResetGrid();
 
             timeStep = 0.01f;
@@ -60,9 +63,27 @@ namespace LiquidViz
 
             solidFill = new SolidColorBrush
             {
-                Color = Colors.Gray
+                Color = Colors.Black
             };
             solidFill.Freeze();
+
+            airPressureFills = Enumerable.Range(0, 10)
+                .Select(i => (float)i / 9)
+                .Select(i =>
+                {
+                    var brush = new SolidColorBrush(Color.Add(Color.Multiply(Colors.White, 1 - i), Color.Multiply(Colors.LightGray, i)));
+                    brush.Freeze();
+                    return (Brush)brush;
+                })
+                .Concat(Enumerable.Range(0, 10)
+                .Select(i => (float)i / 9)
+                .Select(i =>
+                {
+                    var brush = new SolidColorBrush(Color.Add(Color.Multiply(Colors.LightGray, 1 - i), Color.Multiply(Colors.Red, i)));
+                    brush.Freeze();
+                    return (Brush)brush;
+                }))
+                .ToArray();
 
             UpdateCells();
 
@@ -235,6 +256,12 @@ namespace LiquidViz
             }
         }
 
+        public float PressureAtReset
+        {
+            get => pressureAtReset;
+            set => SetProperty(ref pressureAtReset, value);
+        }
+
         public (float, float)? CursorPosition
         {
             get => cursorPosition;
@@ -327,15 +354,25 @@ namespace LiquidViz
                     {
                         cells.Add(new CellVizViewModel(x * Scale, y * Scale, Scale, Scale, solidFill));
                     }
-                    else if (cellState.Volume >= 0.1f)
+                    else
                     {
-                        var fill = cellState.Volume < 1f ? partialFill : cellState.Volume > 1.5f ? largeErrorFill : totalFill;
-                        cells.Add(new CellVizViewModel(
-                            cellState.VolumeX * Scale,
-                            cellState.VolumeY * Scale,
-                            cellState.VolumeWidth * Scale,
-                            cellState.VolumeHeight * Scale,
-                            fill));
+                        if (cellState.Volume < 1f && grid.InitialAirPressure > 0)
+                        {
+                            float logPressure = (float)Math.Log2(cellState.Pressure / grid.InitialAirPressure) * 4;
+                            int brushIndex = Math.Max(0, Math.Min(airPressureFills.Length - 1, (int)logPressure + airPressureFills.Length / 2));
+                            cells.Add(new CellVizViewModel(x * Scale, y * Scale, Scale, Scale, airPressureFills[brushIndex]));
+                        }
+
+                        if (cellState.Volume >= 0.1f)
+                        {
+                            var fill = cellState.Volume < 1f ? partialFill : cellState.Volume > 1.5f ? largeErrorFill : totalFill;
+                            cells.Add(new CellVizViewModel(
+                                cellState.VolumeX * Scale,
+                                cellState.VolumeY * Scale,
+                                cellState.VolumeWidth * Scale,
+                                cellState.VolumeHeight * Scale,
+                                fill));
+                        }
                     }
                 }
             }
@@ -385,6 +422,7 @@ namespace LiquidViz
             //    grid.SetSolid(grid.XSize * 3 / 8, y);
             //}
 
+            grid.InitialAirPressure = pressureAtReset;
             grid.PostInitialise();
         }
 

@@ -41,7 +41,7 @@ namespace LiquidViz
 
             foreach (var cell in Cells ?? Enumerable.Empty<CellVizViewModel>())
             {
-                dc.DrawRectangle(cell.Fill, null, new Rect(cell.X - 1, cell.Y - 1, cell.Width + 2, cell.Height + 2)); // expand by 1 pixel all round to avoid gaps
+                dc.DrawRectangle(cell.Fill, null, new Rect(cell.X, cell.Y, cell.Width + 1, cell.Height + 1)); // expand by 1 pixel to avoid gaps
             }
         }
     }

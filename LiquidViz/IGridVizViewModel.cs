@@ -25,6 +25,7 @@ namespace LiquidViz
         float LogTimeStep { get; set; }
         float OvervolumeCorrection { get; set; }
         float PressureAtReset { get; set; }
+        bool AirPressureViz { get; set; }
 
         float TotalVolume { get; }
         float PositiveDivError { get; }

@@ -52,6 +52,7 @@
                 <Slider Value="{Binding GridViz.PressureAtReset}" Minimum="0" Maximum="25"
                         Width="100" />
                 <TextBox Text="{Binding GridViz.PressureAtReset}" />
+                <CheckBox IsChecked="{Binding GridViz.AirPressureViz}">Visualise</CheckBox>
             </StackPanel>
 
             <StackPanel>
@@ -88,7 +89,6 @@
                         Width="100" />
                 <TextBox Text="{Binding GridViz.OvervolumeCorrection}" />
             </StackPanel>
-
         </StackPanel>
 
         <StackPanel Grid.Row="1" Grid.Column="2">

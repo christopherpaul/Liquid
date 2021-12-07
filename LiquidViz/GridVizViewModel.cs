@@ -35,6 +35,7 @@ namespace LiquidViz
         private float pressureAtReset;
         private bool isAtReset;
         private object tickSync = new object();
+        private bool airPressureViz;
 
         public GridVizViewModel()
         {
@@ -268,6 +269,18 @@ namespace LiquidViz
             }
         }
 
+        public bool AirPressureViz
+        {
+            get => airPressureViz;
+            set
+            {
+                if (SetProperty(ref airPressureViz, value))
+                {
+                    ScheduleVizUpdate();
+                }
+            }
+        }
+
         public (float, float)? CursorPosition
         {
             get => cursorPosition;
@@ -362,7 +375,7 @@ namespace LiquidViz
                     }
                     else
                     {
-                        if (cellState.Volume < 1f && grid.InitialAirPressure > 0)
+                        if (cellState.Volume < 1f && airPressureViz && grid.InitialAirPressure > 0)
                         {
                             float logPressure = (float)Math.Log2(cellState.Pressure / grid.InitialAirPressure) * 4;
                             int brushIndex = Math.Max(0, Math.Min(airPressureFills.Length - 1, (int)logPressure + airPressureFills.Length / 2));

@@ -11,6 +11,7 @@
         <Style TargetType="{x:Type Button}">
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Margin" Value="2" />
+            <Setter Property="Width" Value="80" />
         </Style>
     </Window.Resources>
     <Grid>
@@ -20,6 +21,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
@@ -30,6 +32,27 @@
             <Button Command="{Binding GridViz.StartCommand}">Start</Button>
             <Button Command="{Binding GridViz.StopCommand}">Stop</Button>
             <Button Command="{Binding GridViz.ClearWallsCommand}">Clear walls</Button>
+        </WrapPanel>
+        
+        <local:GridVizView Grid.Row="1" Grid.Column="1"
+                           DataContext="{Binding GridViz}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+        <StackPanel Grid.Row="1" Grid.Column="0">
+            <StackPanel.Resources>
+                <Style TargetType="TextBox">
+                    <Setter Property="Width" Value="100" />
+                </Style>
+                <Style TargetType="StackPanel">
+                    <Setter Property="Margin" Value="0,4,0,4" />
+                </Style>
+            </StackPanel.Resources>
+
+            <StackPanel>
+                <Label>Air pressure @reset</Label>
+                <Slider Value="{Binding GridViz.PressureAtReset}" Minimum="0" Maximum="25"
+                        Width="100" />
+                <TextBox Text="{Binding GridViz.PressureAtReset}" />
+            </StackPanel>
 
             <StackPanel>
                 <Label>Ext force X</Label>
@@ -49,14 +72,14 @@
                 <Label>Viscosity</Label>
                 <Slider Value="{Binding GridViz.LogViscosity}" Minimum="-1" Maximum="5"
                         Width="100" />
-                <TextBox Text="{Binding GridViz.Viscosity, Mode=OneWay}" />
+                <TextBox Text="{Binding GridViz.Viscosity, Mode=OneWay}" IsReadOnly="True" />
             </StackPanel>
 
             <StackPanel>
                 <Label>Time step</Label>
                 <Slider Value="{Binding GridViz.LogTimeStep}" Minimum="-4" Maximum="-1"
                         Width="100" />
-                <TextBox Text="{Binding GridViz.TimeStep, Mode=OneWay}" />
+                <TextBox Text="{Binding GridViz.TimeStep, Mode=OneWay}" IsReadOnly="True" />
             </StackPanel>
 
             <StackPanel>
@@ -66,36 +89,24 @@
                 <TextBox Text="{Binding GridViz.OvervolumeCorrection}" />
             </StackPanel>
 
-            <StackPanel>
-                <Label>Air pressure @reset</Label>
-                <Slider Value="{Binding GridViz.PressureAtReset}" Minimum="0" Maximum="25"
-                        Width="100" />
-                <TextBox Text="{Binding GridViz.PressureAtReset}" />
-            </StackPanel>
-        </WrapPanel>
-        
-        <local:GridVizView Grid.Row="1" Grid.Column="0"
-                           DataContext="{Binding GridViz}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </StackPanel>
 
-        <Grid Grid.Row="1" Grid.Column="1">
-            <Grid.Resources>
+        <StackPanel Grid.Row="1" Grid.Column="2">
+            <StackPanel.Resources>
                 <Style TargetType="TextBox">
-                    <Setter Property="Grid.Column" Value="1" />
                     <Setter Property="IsReadOnly" Value="True" />
                     <Setter Property="Width" Value="100" />
                 </Style>
-            </Grid.Resources>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-
-            <Label Grid.Row="0">Pressure</Label>
-            <TextBox Grid.Row="0" Text="{Binding GridViz.CursorPressure, Mode=OneWay, StringFormat=F2}" />
-        </Grid>
+                <Style TargetType="StackPanel">
+                    <Setter Property="Margin" Value="0,4,0,4" />
+                </Style>
+            </StackPanel.Resources>
+            
+            <StackPanel>
+                <Label>Pressure</Label>
+                <TextBox Text="{Binding GridViz.CursorPressure, Mode=OneWay, StringFormat=F2}" />
+            </StackPanel>
+        </StackPanel>
 
         <WrapPanel Grid.Row="2" Grid.ColumnSpan="2">
             <WrapPanel.Resources>

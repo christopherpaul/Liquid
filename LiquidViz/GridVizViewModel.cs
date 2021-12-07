@@ -33,6 +33,8 @@ namespace LiquidViz
         private DispatcherOperation pendingUpdate;
         private Dispatcher dispatcher;
         private float pressureAtReset;
+        private bool isAtReset;
+        private object tickSync = new object();
 
         public GridVizViewModel()
         {
@@ -90,7 +92,6 @@ namespace LiquidViz
             dispatcher = Dispatcher.CurrentDispatcher;
 
             var tickPeriod = TimeSpan.FromSeconds(0.015);
-            object tickSync = new object();
             int ticksInProgress = 0;
             var tickTimer = new Timer(_ => Tick());
             bool isRunning = false;
@@ -98,10 +99,7 @@ namespace LiquidViz
             ResetCommand = new RelayCommand(() =>
             {
                 Stop();
-                lock (tickSync)
-                {
-                    ResetGrid();
-                }
+                ResetGrid();
                 UpdateCells();
             });
 
@@ -147,6 +145,8 @@ namespace LiquidViz
                 {
                     lock (tickSync)
                     {
+                        isAtReset = false;
+
                         var sw = new Stopwatch();
                         sw.Start();
                         float remainingTickTime = (float)tickPeriod.TotalSeconds;
@@ -259,7 +259,13 @@ namespace LiquidViz
         public float PressureAtReset
         {
             get => pressureAtReset;
-            set => SetProperty(ref pressureAtReset, value);
+            set
+            {
+                if (SetProperty(ref pressureAtReset, value) && isAtReset)
+                {
+                    ResetGrid();
+                }
+            }
         }
 
         public (float, float)? CursorPosition
@@ -402,28 +408,33 @@ namespace LiquidViz
 
         private void ResetGrid()
         {
-            //var rnd = new Random(2021);
-            for (int x = 0; x < grid.XSize; x++)
+            lock (tickSync)
             {
-                for (int y = 0; y < grid.YSize; y++)
+                //var rnd = new Random(2021);
+                for (int x = 0; x < grid.XSize; x++)
                 {
-                    grid.SetVolume(x, y, x >= grid.XSize / 2 && y >= grid.YSize / 6 ? 1f : 0f);
-                    grid.SetU(x, y, 0);
-                    grid.SetV(x, y, 0);
-                    //grid.SetU(x, y, (float)(rnd.NextDouble() * 10 - 5));
-                    //grid.SetV(x, y, (float)(rnd.NextDouble() * 10 - 5));
+                    for (int y = 0; y < grid.YSize; y++)
+                    {
+                        grid.SetVolume(x, y, x >= grid.XSize / 2 && y >= grid.YSize / 6 ? 1f : 0f);
+                        grid.SetU(x, y, 0);
+                        grid.SetV(x, y, 0);
+                        //grid.SetU(x, y, (float)(rnd.NextDouble() * 10 - 5));
+                        //grid.SetV(x, y, (float)(rnd.NextDouble() * 10 - 5));
+                    }
                 }
+
+                // let's build a wall
+                //for (int y = grid.YSize * 1 / 3; y < grid.YSize * 7 / 8; y++)
+                //{
+                //    grid.SetSolid(grid.XSize * 3 / 8 - 1, y);
+                //    grid.SetSolid(grid.XSize * 3 / 8, y);
+                //}
+
+                grid.InitialAirPressure = pressureAtReset;
+                grid.PostInitialise();
+
+                isAtReset = true;
             }
-
-            // let's build a wall
-            //for (int y = grid.YSize * 1 / 3; y < grid.YSize * 7 / 8; y++)
-            //{
-            //    grid.SetSolid(grid.XSize * 3 / 8 - 1, y);
-            //    grid.SetSolid(grid.XSize * 3 / 8, y);
-            //}
-
-            grid.InitialAirPressure = pressureAtReset;
-            grid.PostInitialise();
         }
 
         private void ClearWalls()

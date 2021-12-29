@@ -57,6 +57,7 @@ namespace LiquidSim
         private List<int> airVolumeCellCounts;
         private List<int> tempAirVolumeCellCounts;
         private HashSet<(int, int)> tempAirVolumeMap;
+        private int solverIterations;
 
         public Grid(int xSize, int ySize)
         {
@@ -86,6 +87,7 @@ namespace LiquidSim
             Density = 1;
             Viscosity = 1;
             InitialAirPressure = 1;
+            solverIterations = 20;
         }
 
         public float Density { get; set; }
@@ -99,6 +101,11 @@ namespace LiquidSim
         public int YSize { get; }
 
         public float OvervolumeCorrectionFactor { get; set; }
+        public int SolverIterations
+        {
+            get => solverIterations;
+            set => solverIterations = Math.Max(1, value);
+        }
 
         public CellState this[int x, int y] => GetCellState(x, y);
 
@@ -167,7 +174,7 @@ namespace LiquidSim
             FieldMaths.Divergence(u, v, divU);
             ApplyOvervolumeDivergenceCorrection();
             SetAirPressures();
-            FieldMaths.SolvePressurePoisson(divU, pressure, cellFlags, 20);
+            FieldMaths.SolvePressurePoisson(divU, pressure, cellFlags, SolverIterations);
             FieldMaths.Gradient(pressure, gradPressureX, gradPressureY);
             FieldMaths.MultiplyAdd(gradPressureX, -1, u, 0, 1, 0, 0, XSize + 1, YSize);
             FieldMaths.MultiplyAdd(gradPressureY, -1, v, 1, 0, 0, 0, XSize, YSize + 1);
@@ -393,7 +400,7 @@ namespace LiquidSim
             // method to SimpleAdvection but "queried" a cell-sized square around the back-projected
             // position to take account of VolumeStates. However, this doesn't come close to preserving
             // total volume because fluid doesn't translate uniformly in cell-shaped lumps.
-            
+
             // For the second attempt, I have changed where u and v are defined (now on cell boundaries,
             // so can be viewed as rate of fluid transfer between neighbouring cells). Initially I will
             // keep things simple and just do a transfer of dt * u (or dt * v) worth of either fluid or

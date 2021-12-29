@@ -89,6 +89,13 @@
                         Width="100" />
                 <TextBox Text="{Binding GridViz.OvervolumeCorrection}" />
             </StackPanel>
+
+            <StackPanel>
+                <Label>Solver iterations</Label>
+                <Slider Value="{Binding GridViz.SolverIterations}" Minimum="1" Maximum="100"
+                        Width="100" />
+                <TextBox Text="{Binding GridViz.SolverIterations}" />
+            </StackPanel>
         </StackPanel>
 
         <StackPanel Grid.Row="1" Grid.Column="2">

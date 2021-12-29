@@ -257,6 +257,16 @@ namespace LiquidViz
             }
         }
 
+        public int SolverIterations
+        {
+            get => grid.SolverIterations;
+            set
+            {
+                grid.SolverIterations = value;
+                OnPropertyChanged(nameof(SolverIterations));
+            }
+        }
+
         public float PressureAtReset
         {
             get => pressureAtReset;

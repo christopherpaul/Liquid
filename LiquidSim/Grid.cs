@@ -164,6 +164,21 @@ namespace LiquidSim
         }
 
         /// <summary>
+        /// Gets the force applied to the specified cell by the pressure of neighbouring
+        /// liquid or air cells.
+        /// </summary>
+        public (float fx, float fy) GetForceOnCell(int x, int y)
+        {
+            float fx = x > 0 && !solid[x - 1, y] ? pressure[x, y + 1] : 0;
+            fx -= x < XSize - 1 && !solid[x + 1, y] ? pressure[x + 2, y + 1] : 0;
+
+            float fy = y > 0 && !solid[x, y - 1] ? pressure[x + 1, y] : 0;
+            fy -= y < YSize - 1 && !solid[x, y + 1] ? pressure[x + 1, y + 2] : 0;
+
+            return (fx, fy);
+        }
+
+        /// <summary>
         /// Enforces non-divergence on u and v
         /// </summary>
         private void EnforceNonDivergenceOfVelocity()

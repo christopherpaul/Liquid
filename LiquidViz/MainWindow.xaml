@@ -113,6 +113,25 @@
                 <Label>Pressure</Label>
                 <TextBox Text="{Binding GridViz.CursorPressure, Mode=OneWay, StringFormat=F2}" />
             </StackPanel>
+
+            <StackPanel>
+                <Label>Force from pressure</Label>
+                <TextBox Text="{Binding GridViz.CursorForceDisplay, Mode=OneWay}" />
+            </StackPanel>
+
+            <Canvas Width="100" Height="100">
+                <Ellipse Width="100" Height="100" Canvas.Left="0" Canvas.Top="0" Stroke="LightGray" />
+                <Ellipse Width="50" Height="50" Canvas.Left="25" Canvas.Top="25" Stroke="LightGray" />
+                <Ellipse Width="10" Height="10" Fill="Green">
+                    <Ellipse.RenderTransform>
+                        <TransformGroup>
+                            <TranslateTransform X="-5" Y="-5" />
+                            <TranslateTransform X="{Binding GridViz.CursorForceX}" Y="{Binding GridViz.CursorForceY}" />
+                            <TranslateTransform X="50" Y="50" />
+                        </TransformGroup>
+                    </Ellipse.RenderTransform>
+                </Ellipse>
+            </Canvas>
         </StackPanel>
 
         <WrapPanel Grid.Row="2" Grid.ColumnSpan="2">

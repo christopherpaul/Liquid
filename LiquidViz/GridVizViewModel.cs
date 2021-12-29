@@ -30,12 +30,15 @@ namespace LiquidViz
         private float tickProcessingDuration;
         private (float, float)? cursorPosition;
         private float? cursorPressure;
+        private float? cursorForceX;
+        private float? cursorForceY;
         private DispatcherOperation pendingUpdate;
         private Dispatcher dispatcher;
         private float pressureAtReset;
         private bool isAtReset;
         private object tickSync = new object();
         private bool airPressureViz;
+        private HashSet<(int, int)> tempConnectedCells = new HashSet<(int, int)>();
 
         public GridVizViewModel()
         {
@@ -365,6 +368,32 @@ namespace LiquidViz
             private set => SetProperty(ref cursorPressure, value);
         }
 
+        public float? CursorForceX
+        {
+            get => cursorForceX;
+            private set
+            {
+                if (SetProperty(ref cursorForceX, value))
+                {
+                    OnPropertyChanged(nameof(CursorForceDisplay));
+                }
+            }
+        }
+
+        public float? CursorForceY
+        {
+            get => cursorForceY;
+            private set
+            {
+                if (SetProperty(ref cursorForceY, value))
+                {
+                    OnPropertyChanged(nameof(CursorForceDisplay));
+                }
+            }
+        }
+
+        public string CursorForceDisplay => CursorForceX.HasValue && CursorForceY.HasValue ? $"({CursorForceX.Value:F2}, {CursorForceY.Value:F2})" : null;
+
         private void ScheduleVizUpdate()
         {
             pendingUpdate?.Abort();
@@ -414,6 +443,73 @@ namespace LiquidViz
         private void UpdateCursorValues()
         {
             CursorPressure = GetGridValue((x, y) => grid[x, y].Pressure);
+            if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
+            {
+                (CursorForceX, CursorForceY) = GetGridValue((x, y) => GetTotalForceOnConnectedSolidCells(x, y) ?? ((float?)null, (float?)null)) ?? ((float?)null, (float?)null);
+            }
+            else
+            {
+                (CursorForceX, CursorForceY) = GetGridValue((x, y) => grid.GetForceOnCell(x, y)) ?? ((float?)null, (float?)null);
+            }
+        }
+
+        private (float fx, float fy)? GetTotalForceOnConnectedSolidCells(int startX, int startY)
+        {
+            var cells = tempConnectedCells;
+            cells.Clear();
+            Add(startX, startY);
+
+            float totalFx = 0, totalFy = 0;
+            foreach (var (x, y) in cells)
+            {
+                var (fx, fy) = grid.GetForceOnCell(x, y);
+                totalFx += fx;
+                totalFy += fy;
+            }
+
+            return (totalFx, totalFy);
+
+            void Add(int x, int y)
+            {
+                if (!grid[x, y].IsSolid || cells.Contains((x, y)))
+                {
+                    return;
+                }
+
+                cells.Add((x, y));
+                if (x > 0)
+                {
+                    Add(x - 1, y);
+                    if (y > 0)
+                    {
+                        Add(x - 1, y - 1);
+                    }
+                    if (y < grid.YSize - 1)
+                    {
+                        Add(x - 1, y + 1);
+                    }
+                }
+                if (x < grid.XSize - 1)
+                {
+                    Add(x + 1, y);
+                    if (y > 0)
+                    {
+                        Add(x + 1, y - 1);
+                    }
+                    if (y < grid.YSize - 1)
+                    {
+                        Add(x + 1, y + 1);
+                    }
+                }
+                if (y > 0)
+                {
+                    Add(x, y - 1);
+                }
+                if (y < grid.YSize - 1)
+                {
+                    Add(x, y + 1);
+                }
+            }
         }
 
         private T? GetGridValue<T>(Func<int, int, T> f) where T : struct

@@ -33,6 +33,9 @@ namespace LiquidViz
         float NegativeDivError { get; }
 
         float? CursorPressure { get; }
+        float? CursorForceX { get; }
+        float? CursorForceY { get; }
+        string CursorForceDisplay { get; }
 
         float TickProcessingDuration { get; }
     }

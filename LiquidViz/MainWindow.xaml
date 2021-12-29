@@ -57,14 +57,14 @@
 
             <StackPanel>
                 <Label>Ext force X</Label>
-                <Slider Value="{Binding GridViz.ExternalForceX}" Minimum="-2" Maximum="2" 
+                <Slider Value="{Binding GridViz.ExternalForceX}" Minimum="-200" Maximum="200" 
                         Width="100" />
                 <TextBox Text="{Binding GridViz.ExternalForceX}" />
             </StackPanel>
 
             <StackPanel>
                 <Label>Ext force Y</Label>
-                <Slider Value="{Binding GridViz.ExternalForceY}" Minimum="-2" Maximum="2"
+                <Slider Value="{Binding GridViz.ExternalForceY}" Minimum="-200" Maximum="200"
                         Width="100" />
                 <TextBox Text="{Binding GridViz.ExternalForceY}" />
             </StackPanel>

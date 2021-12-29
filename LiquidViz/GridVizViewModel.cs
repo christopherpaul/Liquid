@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -39,13 +40,16 @@ namespace LiquidViz
         private object tickSync = new object();
         private bool airPressureViz;
         private HashSet<(int, int)> tempConnectedCells = new HashSet<(int, int)>();
+        private readonly SolidObjectCollection solidObjects;
 
         public GridVizViewModel()
         {
             grid = new Grid(80, 80);
-            grid.ExternalForceY = 1;
+            grid.ExternalForceY = 100;
             pressureAtReset = 0;
             ResetGrid();
+
+            solidObjects = new SolidObjectCollection(grid);
 
             timeStep = 0.01f;
 
@@ -156,7 +160,10 @@ namespace LiquidViz
                         float remainingTickTime = (float)tickPeriod.TotalSeconds;
                         while (remainingTickTime > 0)
                         {
-                            grid.Step(Math.Min(remainingTickTime, timeStep));
+                            float dt = Math.Min(remainingTickTime, timeStep);
+                            grid.Step(dt);
+                            solidObjects.UpdateAll(dt);
+
                             remainingTickTime -= timeStep;
                         }
                         sw.Stop();
@@ -333,7 +340,14 @@ namespace LiquidViz
             }
 
             (float x, float y) = pos.Value;
-            grid.SetSolid((int)x, (int)y, isSolid);
+            if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
+            {
+                ConvertToObject((int)x, (int)y);
+            }
+            else
+            {
+                grid.SetSolid((int)x, (int)y, isSolid ? CellSolidKind.Fixed : CellSolidKind.None);
+            }
 
             ScheduleVizUpdate();
         }
@@ -408,7 +422,7 @@ namespace LiquidViz
                 for (int y = 0; y < grid.YSize; y++)
                 {
                     var cellState = grid[x, y];
-                    if (cellState.IsSolid)
+                    if (cellState.SolidKind != CellSolidKind.None)
                     {
                         cells.Add(new CellVizViewModel(x * Scale, y * Scale, Scale, Scale, solidFill));
                     }
@@ -449,29 +463,41 @@ namespace LiquidViz
             }
             else
             {
-                (CursorForceX, CursorForceY) = GetGridValue((x, y) => grid.GetForceOnCell(x, y)) ?? ((float?)null, (float?)null);
+                (CursorForceX, CursorForceY) = GetGridValue((x, y) => grid.GetPressureForceOnCell(x, y)) ?? ((float?)null, (float?)null);
             }
         }
 
         private (float fx, float fy)? GetTotalForceOnConnectedSolidCells(int startX, int startY)
         {
-            var cells = tempConnectedCells;
-            cells.Clear();
-            Add(startX, startY);
+            var cells = GetConnectedCellsUnsafe(startX, startY);
 
             float totalFx = 0, totalFy = 0;
             foreach (var (x, y) in cells)
             {
-                var (fx, fy) = grid.GetForceOnCell(x, y);
+                var (fx, fy) = grid.GetPressureForceOnCell(x, y);
                 totalFx += fx;
                 totalFy += fy;
             }
 
             return (totalFx, totalFy);
+        }
+
+        private IImmutableList<(int, int)> GetConnectedCells(int startX, int startY)
+        {
+            return GetConnectedCellsUnsafe(startX, startY).ToImmutableArray();
+        }
+
+        private IEnumerable<(int, int)> GetConnectedCellsUnsafe(int startX, int startY)
+        {
+            var cells = tempConnectedCells;
+            cells.Clear();
+            Add(startX, startY);
+
+            return cells;
 
             void Add(int x, int y)
             {
-                if (!grid[x, y].IsSolid || cells.Contains((x, y)))
+                if (grid[x, y].SolidKind != CellSolidKind.Fixed || cells.Contains((x, y)))
                 {
                     return;
                 }
@@ -558,11 +584,32 @@ namespace LiquidViz
 
         private void ClearWalls()
         {
+            solidObjects.Clear();
+
             for (int x = 0; x < grid.XSize; x++)
             {
                 for (int y = 0; y < grid.YSize; y++)
                 {
-                    grid.SetSolid(x, y, false);
+                    grid.SetSolid(x, y, CellSolidKind.None);
+                }
+            }
+        }
+
+        private void ConvertToObject(int x, int y)
+        {
+            lock (tickSync)
+            {
+                var cells = GetConnectedCells(x, y);
+                if (cells.Count > 0)
+                {
+                    foreach (var (cx, cy) in cells)
+                    {
+                        grid.SetSolid(cx, cy, CellSolidKind.None);
+                    }
+
+                    var o = SolidObject.FromCells(cells);
+                    o.Density = 0.01f;
+                    solidObjects.Add(o);
                 }
             }
         }

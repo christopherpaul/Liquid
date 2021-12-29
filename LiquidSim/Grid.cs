@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -7,13 +8,20 @@ using System.Threading.Tasks;
 
 namespace LiquidSim
 {
+    public enum CellSolidKind : byte
+    {
+        None,
+        Fixed,
+        Object
+    }
+
     /// <summary>
     /// Grid for simulating liquid flow. The grid is orientated such that x increases left-to-right
     /// and y increases top-to-bottom
     /// </summary>
     public sealed class Grid
     {
-        private bool[,] solid;
+        private CellSolidKind[,] solid;
 
         /// <summary>
         /// Modelling liquid as incompressible but using "volume of fluid" approach to deal with
@@ -64,7 +72,7 @@ namespace LiquidSim
             XSize = xSize;
             YSize = ySize;
 
-            solid = new bool[xSize, ySize];
+            solid = new CellSolidKind[xSize, ySize];
             volume = new float[xSize, ySize];
             tempVolume = new float[xSize, ySize];
             airVolume = new int[xSize, ySize];
@@ -109,7 +117,8 @@ namespace LiquidSim
 
         public CellState this[int x, int y] => GetCellState(x, y);
 
-        public void SetSolid(int x, int y, bool isSolid = true) => solid[x, y] = isSolid;
+        public void SetSolid(int x, int y, CellSolidKind kind = CellSolidKind.Fixed) => solid[x, y] = kind;
+        public CellSolidKind GetSolid(int x, int y) => solid[x, y];
         public void SetVolume(int x, int y, float vol) => volume[x, y] = vol;
         public void SetU(int x, int y, float value) => u[x, y] = value;
         public void SetV(int x, int y, float value) => v[x, y] = value;
@@ -167,13 +176,18 @@ namespace LiquidSim
         /// Gets the force applied to the specified cell by the pressure of neighbouring
         /// liquid or air cells.
         /// </summary>
-        public (float fx, float fy) GetForceOnCell(int x, int y)
+        public (float fx, float fy) GetPressureForceOnCell(int x, int y)
         {
-            float fx = x > 0 && !solid[x - 1, y] ? pressure[x, y + 1] : 0;
-            fx -= x < XSize - 1 && !solid[x + 1, y] ? pressure[x + 2, y + 1] : 0;
+            if (x < 0 || x >= XSize || y < 0 || y >= YSize)
+            {
+                return (0, 0);
+            }
 
-            float fy = y > 0 && !solid[x, y - 1] ? pressure[x + 1, y] : 0;
-            fy -= y < YSize - 1 && !solid[x, y + 1] ? pressure[x + 1, y + 2] : 0;
+            float fx = x > 0 && solid[x - 1, y] == CellSolidKind.None ? pressure[x, y + 1] : 0;
+            fx -= x < XSize - 1 && solid[x + 1, y] == CellSolidKind.None ? pressure[x + 2, y + 1] : 0;
+
+            float fy = y > 0 && solid[x, y - 1] == CellSolidKind.None ? pressure[x + 1, y] : 0;
+            fy -= y < YSize - 1 && solid[x, y + 1] == CellSolidKind.None ? pressure[x + 1, y + 2] : 0;
 
             return (fx, fy);
         }
@@ -546,8 +560,8 @@ namespace LiquidSim
 
         private void DoVelocityEvolution(float dt)
         {
-            FieldMaths.Add(u, ExternalForceX);
-            FieldMaths.Add(v, ExternalForceY);
+            FieldMaths.Add(u, ExternalForceX * dt);
+            FieldMaths.Add(v, ExternalForceY * dt);
 
             FieldMaths.Diffuse(u, dt, Viscosity, tempU, 20);
             FieldMaths.Diffuse(v, dt, Viscosity, tempV, 20);
@@ -764,19 +778,19 @@ namespace LiquidSim
                     {
                         f |= CellVolumeFlags.IsInDomain;
                     }
-                    if (x == 0 || solid[x - 1, y])
+                    if (x == 0 || solid[x - 1, y] != CellSolidKind.None)
                     {
                         f |= CellVolumeFlags.HasLeftBoundary;
                     }
-                    if (x == XSize - 1 || solid[x + 1, y])
+                    if (x == XSize - 1 || solid[x + 1, y] != CellSolidKind.None)
                     {
                         f |= CellVolumeFlags.HasRightBoundary;
                     }
-                    if (y == 0 || solid[x, y - 1])
+                    if (y == 0 || solid[x, y - 1] != CellSolidKind.None)
                     {
                         f |= CellVolumeFlags.HasTopBoundary;
                     }
-                    if (y == YSize - 1 || solid[x, y + 1])
+                    if (y == YSize - 1 || solid[x, y + 1] != CellSolidKind.None)
                     {
                         f |= CellVolumeFlags.HasBottomBoundary;
                     }
@@ -787,7 +801,7 @@ namespace LiquidSim
 
         private CellVolumeFlags GetVolumeFlags(int x, int y)
         {
-            if (x < 0 || y < 0 || x >= XSize || y >= YSize || solid[x, y])
+            if (x < 0 || y < 0 || x >= XSize || y >= YSize || solid[x, y] != CellSolidKind.None)
             {
                 return CellVolumeFlags.None;
             }

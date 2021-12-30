@@ -31,13 +31,17 @@ namespace LiquidSim
 
             foreach (var o in objects)
             {
-                o.ApplyForces(grid, timestep);
                 o.Move(timestep);
             }
 
             foreach (var o in objects)
             {
                 o.WriteToGrid(grid);
+            }
+
+            foreach (var o in objects)
+            {
+                o.ApplyForces(grid, timestep);
             }
         }
 

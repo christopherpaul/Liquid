@@ -78,7 +78,14 @@ namespace LiquidSim
                 {
                     if (grid.GetSolid(gx, gy) == test)
                     {
-                        grid.SetSolid(gx, gy, set);
+                        if (set == CellSolidKind.Object)
+                        {
+                            grid.SetSolidObject(gx, gy, velocityX, velocityY);
+                        }
+                        else
+                        {
+                            grid.SetSolid(gx, gy, set);
+                        }
                     }
                 }
             }

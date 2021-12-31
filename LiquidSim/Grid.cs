@@ -823,15 +823,23 @@ namespace LiquidSim
 
         private CellVolumeFlags GetVolumeFlags(int x, int y)
         {
-            if (x < 0 || y < 0 || x >= XSize || y >= YSize || solid[x, y] != CellSolidKind.None)
+            if (x < 0 || y < 0 || x >= XSize || y >= YSize)
             {
                 return CellVolumeFlags.None;
             }
 
+            CellSolidKind cellSolidKind = solid[x, y];
+            if (cellSolidKind == CellSolidKind.Fixed)
+            {
+                return CellVolumeFlags.None;
+            }
+
+            CellVolumeFlags hasAirOrNot = cellSolidKind == CellSolidKind.None ? CellVolumeFlags.HasAir : 0;
+
             float vol = volume[x, y];
             if (vol <= 0f)
             {
-                return CellVolumeFlags.None | CellVolumeFlags.HasAir;
+                return CellVolumeFlags.None | hasAirOrNot;
             }
             if (vol >= 1f)
             {
@@ -861,7 +869,7 @@ namespace LiquidSim
             {
                 best = CellVolumeFlags.Bottom;
             }
-            return best | CellVolumeFlags.HasAir;
+            return best | hasAirOrNot;
         }
 
         private CellState GetCellState(int x, int y)

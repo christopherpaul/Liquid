@@ -60,8 +60,9 @@ namespace LiquidSim
         private int[,] tempAirVolume;
         private List<float> airVolumeMasses;
         private List<float> tempAirVolumeMasses;
-        private List<int> airVolumeCellCounts;
-        private List<int> tempAirVolumeCellCounts;
+        private List<float> airVolumeCellCounts;
+        private List<float> tempAirVolumeCellCounts;
+        private List<int> tempAirVolumeLinks;
         private HashSet<(int, int)> tempAirVolumeMap;
 
         private int solverIterations;
@@ -83,10 +84,11 @@ namespace LiquidSim
             airVolume = new int[xSize, ySize];
             tempAirVolume = new int[xSize, ySize];
             airVolumeMasses = new List<float>();
-            airVolumeCellCounts = new List<int>();
+            airVolumeCellCounts = new List<float>();
             tempAirVolumeMasses = new List<float>();
-            tempAirVolumeCellCounts = new List<int>();
+            tempAirVolumeCellCounts = new List<float>();
             tempAirVolumeMap = new HashSet<(int, int)>();
+            tempAirVolumeLinks = new List<int>();
             cellFlags = new uint[xSize, ySize];
             u = new float[xSize + 1, ySize];
             tempU = new float[xSize + 1, ySize];
@@ -952,6 +954,7 @@ namespace LiquidSim
         private void DiscoverAirVolumes()
         {
             tempAirVolumeCellCounts.Clear();
+            tempAirVolumeLinks.Clear();
             tempAirVolumeMasses.Clear();
             FieldMaths.Clear(tempAirVolume, -1);
 
@@ -961,49 +964,52 @@ namespace LiquidSim
                 {
                     if (HasAir(cellFlags[x, y]))
                     {
-                        int left = -1, leftCount = 0;
+                        float v = Math.Max(0, 1 - volume[x, y]);
+
+                        int left = -1, leftLink = 0;
                         if (x > 0 && (left = tempAirVolume[x - 1, y]) >= 0)
                         {
-                            leftCount = tempAirVolumeCellCounts[left];
-                            while (leftCount <= 0)
+                            leftLink = tempAirVolumeLinks[left];
+                            while (leftLink >= 0)
                             {
-                                left = -leftCount;
-                                leftCount = tempAirVolumeCellCounts[left];
+                                left = leftLink;
+                                leftLink = tempAirVolumeLinks[left];
                             }
                         }
 
-                        int up = -1, upCount = 0;
+                        int up = -1, upLink = 0;
                         if (y > 0 && (up = tempAirVolume[x, y - 1]) >= 0)
                         {
-                            upCount = tempAirVolumeCellCounts[up];
-                            while (upCount <= 0)
+                            upLink = tempAirVolumeLinks[up];
+                            while (upLink >= 0)
                             {
-                                up = -upCount;
-                                upCount = tempAirVolumeCellCounts[up];
+                                up = upLink;
+                                upLink = tempAirVolumeLinks[up];
                             }
                         }
 
                         if (left >= 0 && up >= 0 && left != up)
                         {
                             // Merge
-                            tempAirVolumeCellCounts[left] = leftCount + upCount + 1;
-                            tempAirVolumeCellCounts[up] = -left;
+                            tempAirVolumeCellCounts[left] += tempAirVolumeCellCounts[up] + v;
+                            tempAirVolumeLinks[up] = left;
                             tempAirVolume[x, y] = left;
                         }
                         else if (left >= 0)
                         {
-                            tempAirVolumeCellCounts[left] = leftCount + 1;
+                            tempAirVolumeCellCounts[left] += v;
                             tempAirVolume[x, y] = left;
                         }
                         else if (up >= 0)
                         {
-                            tempAirVolumeCellCounts[up] = upCount + 1;
+                            tempAirVolumeCellCounts[up] += v;
                             tempAirVolume[x, y] = up;
                         }
                         else
                         {
                             int newVol = tempAirVolumeCellCounts.Count;
-                            tempAirVolumeCellCounts.Add(1);
+                            tempAirVolumeCellCounts.Add(v);
+                            tempAirVolumeLinks.Add(-1);
                             tempAirVolume[x, y] = newVol;
                         }
                     }
@@ -1017,11 +1023,11 @@ namespace LiquidSim
                     int vol = tempAirVolume[x, y];
                     if (vol >= 0)
                     {
-                        int volCount = tempAirVolumeCellCounts[vol];
-                        while (volCount <= 0)
+                        int volLink = tempAirVolumeLinks[vol];
+                        while (volLink >= 0)
                         {
-                            vol = -volCount;
-                            volCount = tempAirVolumeCellCounts[vol];
+                            vol = volLink;
+                            volLink = tempAirVolumeLinks[vol];
                         }
 
                         tempAirVolume[x, y] = vol;
@@ -1029,9 +1035,12 @@ namespace LiquidSim
                 }
             }
 
-            for (int i = 0; i < tempAirVolumeCellCounts.Count; i++)
+            for (int i = 0; i < tempAirVolumeLinks.Count; i++)
             {
-                tempAirVolumeCellCounts[i] = Math.Max(0, tempAirVolumeCellCounts[i]);
+                if (tempAirVolumeLinks[i] >= 0)
+                {
+                    tempAirVolumeCellCounts[i] = 0;
+                }
             }
 
             bool HasAir(uint f) => (((CellVolumeFlags)f) & CellVolumeFlags.HasAir) != 0;

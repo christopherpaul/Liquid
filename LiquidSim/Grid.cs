@@ -240,7 +240,7 @@ namespace LiquidSim
                         int vol = airVolume[x, y];
                         if (vol >= 0)
                         {
-                            pressure[x + 1, y + 1] = airVolumeMasses[vol] / airVolumeCellCounts[vol]; //TODO precompute per volume
+                            pressure[x + 1, y + 1] = airVolumeMasses[vol] / airVolumeCellCounts[vol]; //TODO precompute per volume; TODO might want to limit this
                         }
                     }
                 }
